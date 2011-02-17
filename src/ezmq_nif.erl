@@ -17,25 +17,25 @@ init() ->
     end.
 
 context(_Threads) ->
-    error(not_loaded).
+    erlang:nif_error(not_loaded).
 
 socket(_Context, _Type) ->
-    error(not_loaded).
+    erlang:nif_error(not_loaded).
 
 bind(_Socket, _Endpoint) ->
-    error(not_loaded).
+    erlang:nif_error(not_loaded).
 
 connect(_Socket, _Endpoint) ->
-    error(not_loaded).
+    erlang:nif_error(not_loaded).
 
 send(_Socket, _Binary, _Flags) ->
-    error(not_loaded).
+    erlang:nif_error(not_loaded).
 
 brecv(_Socket, _Flags) ->
-    error(not_loaded).
+    erlang:nif_error(not_loaded).
 
 setsockopt(_Socket, _OptionName, _OptionValue) ->
-    error(not_loaded).
+    erlang:nif_error(not_loaded).
 
 getsockopt(_Socket, _OptionName) ->
-    error(not_loaded).
+    erlang:nif_error(not_loaded).
