@@ -1,0 +1,5 @@
+ebin/*.app
+ebin/*.beam
+priv/*.so
+c_src/*.o
+deps

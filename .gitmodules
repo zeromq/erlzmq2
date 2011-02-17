@@ -1,0 +1,3 @@
+[submodule "deps/zeromq2"]
+	path = deps/zeromq2
+	url = https://github.com/zeromq/zeromq2.git
