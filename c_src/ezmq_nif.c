@@ -211,6 +211,7 @@ NIF(ezmq_nif_getsockopt)
   case ZMQ_RATE:
   case ZMQ_RECOVERY_IVL:
   case ZMQ_MCAST_LOOP:
+  case ZMQ_FD:
     // int64_t
     if (!(error = zmq_getsockopt(socket->socket, _option_name, &_option_value_64, &_option_len))) {
       return enif_make_tuple2(env, enif_make_atom(env, "ok"), enif_make_int64(env, _option_value_64));
