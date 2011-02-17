@@ -229,6 +229,8 @@ NIF(ezmq_nif_getsockopt)
       return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
     }
     break;
+  case ZMQ_SUBSCRIBE:
+  case ZMQ_UNSUBSCRIBE:
   case ZMQ_IDENTITY:
     // binary
     if (!(error = zmq_getsockopt(socket->socket, _option_name, _option_value, &_option_len))) {
