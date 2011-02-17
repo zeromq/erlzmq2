@@ -25,4 +25,7 @@
 -define('ZMQ_RCVMORE',     13).
 -define('ZMQ_FD',          14).
 
+% ZMQ send/recv flags
+-define('ZMQ_NOBLOCK',    1).
+-define('ZMQ_SNDMORE',    2).
 
