@@ -1,7 +1,6 @@
 #include "zmq.h"
 #include "erl_nif.h"
 #include <string.h>
-#include <stdio.h>
 
 static ErlNifResourceType* ezmq_nif_resource_context;
 static ErlNifResourceType* ezmq_nif_resource_socket;
@@ -186,13 +185,10 @@ NIF(ezmq_nif_brecv)
   int _flags;
 
   if (!enif_get_resource(env, argv[0], ezmq_nif_resource_socket, (void **) &socket)) {
-    printf("0");fflush(0);
     return enif_make_badarg(env);
   }
 
   if (!enif_get_int(env, argv[1], &_flags)) {
-    printf("1");fflush(0);
-
     return enif_make_badarg(env);
   }
 
