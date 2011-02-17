@@ -20,7 +20,7 @@ connect(Socket, Endpoint) ->
 send(Socket, Binary) ->
     send(Socket, Binary, []).
 
-send(Socket, Binary, Flags) when is_binary(Binary) andalso is_list(Flags) ->
+send(Socket, Binary, Flags) when is_list(Flags) ->
     ezmq_nif:send(Socket, Binary, sendrecv_flags(Flags)).
 
 brecv(Socket) ->

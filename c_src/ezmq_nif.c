@@ -164,7 +164,7 @@ NIF(ezmq_nif_setsockopt)
 
   if (!enif_get_uint64(env, argv[2], &_uint64)) {
     if (!enif_get_int64(env, argv[2], &_int64)) {
-        if (!enif_inspect_binary(env, argv[2], &_bin)) {
+        if (!enif_inspect_iolist_as_binary(env, argv[2], &_bin)) {
           return enif_make_badarg(env);
         }  else {
           _option_value = _bin.data;
@@ -257,7 +257,7 @@ NIF(ezmq_nif_send)
     return enif_make_badarg(env);
   }
 
-  if (!enif_inspect_binary(env, argv[1], &_bin)) {
+  if (!enif_inspect_iolist_as_binary(env, argv[1], &_bin)) {
     return enif_make_badarg(env);
   }
 
