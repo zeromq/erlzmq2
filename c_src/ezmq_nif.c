@@ -186,7 +186,6 @@ NIF(ezmq_nif_setsockopts)
   }
 }
 
-#include <stdio.h>
 NIF(ezmq_nif_getsockopts)
 {
   ezmq_socket * socket;
