@@ -1,6 +1,6 @@
 -module(ezmq_nif).
 
--export([context/1, socket/2, bind/2, connect/2, send/3, brecv/2, setsockopts/3, getsockopts/2]).
+-export([context/1, socket/2, bind/2, connect/2, send/3, brecv/2, setsockopt/3, getsockopt/2]).
 
 -on_load(init/0).
 
@@ -34,8 +34,8 @@ send(_Socket, _Binary, _Flags) ->
 brecv(_Socket, _Flags) ->
     error(not_loaded).
 
-setsockopts(_Socket, _OptionName, _OptionValue) ->
+setsockopt(_Socket, _OptionName, _OptionValue) ->
     error(not_loaded).
 
-getsockopts(_Socket, _OptionName) ->
+getsockopt(_Socket, _OptionName) ->
     error(not_loaded).

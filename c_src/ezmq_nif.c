@@ -20,8 +20,8 @@ NIF(ezmq_nif_context);
 NIF(ezmq_nif_socket);
 NIF(ezmq_nif_bind);
 NIF(ezmq_nif_connect);
-NIF(ezmq_nif_setsockopts);
-NIF(ezmq_nif_getsockopts);
+NIF(ezmq_nif_setsockopt);
+NIF(ezmq_nif_getsockopt);
 NIF(ezmq_nif_send);
 NIF(ezmq_nif_brecv);
 
@@ -32,8 +32,8 @@ static ErlNifFunc nif_funcs[] =
   {"socket", 2, ezmq_nif_socket},
   {"bind", 2, ezmq_nif_bind},
   {"connect", 2, ezmq_nif_connect},
-  {"setsockopts", 3, ezmq_nif_setsockopts},
-  {"getsockopts", 2, ezmq_nif_getsockopts},
+  {"setsockopt", 3, ezmq_nif_setsockopt},
+  {"getsockopt", 2, ezmq_nif_getsockopt},
   {"send", 3, ezmq_nif_send},
   {"brecv", 2, ezmq_nif_brecv}
 };
@@ -144,7 +144,7 @@ NIF(ezmq_nif_connect)
   }
 }
 
-NIF(ezmq_nif_setsockopts)
+NIF(ezmq_nif_setsockopt)
 {
   ezmq_socket * socket;
   int _option_name;
@@ -186,7 +186,7 @@ NIF(ezmq_nif_setsockopts)
   }
 }
 
-NIF(ezmq_nif_getsockopts)
+NIF(ezmq_nif_getsockopt)
 {
   ezmq_socket * socket;
   int _option_name;
