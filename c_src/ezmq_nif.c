@@ -23,9 +23,8 @@ typedef struct _ezmq_socket {
 typedef struct _ezmq_recv {
   ErlNifEnv * env;
   ERL_NIF_TERM ref;
-  ErlNifPid pid;
-  ezmq_socket * socket;
   int flags;
+  ErlNifPid pid;
 } ezmq_recv;
 
 static void * zmq_internal_context;
@@ -367,10 +366,9 @@ NIF(ezmq_nif_recv)
 {
 
   ezmq_recv recv;
+  ezmq_socket * socket;
 
-  enif_self(env, &recv.pid);
-
-  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_socket, (void **) &recv.socket)) {
+  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_socket, (void **) &socket)) {
     return enif_make_badarg(env);
   }
 
@@ -378,17 +376,18 @@ NIF(ezmq_nif_recv)
     return enif_make_badarg(env);
   }
 
+  enif_self(env, &recv.pid);
+
   int error;
   zmq_msg_t msg;
 
   // try brecv with noblock
 
-  error = brecv(&msg, recv.socket, ZMQ_NOBLOCK);
+  error = brecv(&msg, socket, ZMQ_NOBLOCK);
 
   if (error == EAGAIN) { // if nothing is there, hand it off to the receiver thread
     recv.env = enif_alloc_env();
     recv.ref = enif_make_ref(recv.env);
-    
     
     if ((error = zmq_msg_init_size(&msg, sizeof(ezmq_recv)))) {
       return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
@@ -396,7 +395,7 @@ NIF(ezmq_nif_recv)
     
     memcpy(zmq_msg_data(&msg), &recv, sizeof(ezmq_recv));
     
-    if ((error = zmq_send(recv.socket->server, &msg, ZMQ_NOBLOCK))) {
+    if ((error = zmq_send(socket->server, &msg, ZMQ_NOBLOCK))) {
       return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
     }
     
@@ -424,6 +423,17 @@ NIF(ezmq_nif_recv)
 
 //
 
+void rcvmsg(ErlNifBinary * bin, zmq_msg_t * rmsg, ezmq_socket * socket, int flags) {
+  zmq_msg_init(rmsg);
+  zmq_recv(socket->socket, rmsg, flags);
+  
+  enif_alloc_binary(zmq_msg_size(rmsg), bin);
+  memcpy(bin->data, zmq_msg_data(rmsg), zmq_msg_size(rmsg));
+  
+  zmq_msg_close(rmsg);
+}
+
+
 void * receiver_thread(void * handle) {
   ezmq_socket * socket = (ezmq_socket *) handle;
   zmq_msg_t msg;
@@ -436,19 +446,13 @@ void * receiver_thread(void * handle) {
     if (!zmq_recv(socket->client, &msg, 0)) {
       recv = (ezmq_recv *) zmq_msg_data(&msg);
       
-      zmq_msg_init(&rmsg);
-      zmq_recv(recv->socket->socket, &rmsg, recv->flags);
-      
       ErlNifBinary bin;
-      enif_alloc_binary(zmq_msg_size(&rmsg), &bin);
-      memcpy(bin.data, zmq_msg_data(&rmsg), zmq_msg_size(&rmsg));
       
+      rcvmsg(&bin, &rmsg, socket, recv->flags);
       
       enif_send(NULL, &recv->pid, env, enif_make_tuple2(env, enif_make_copy(env, recv->ref),
-                                                      enif_make_binary(env, &bin)));
+                                                          enif_make_binary(env, &bin)));
       enif_free(recv->env);
-      
-      zmq_msg_close(&rmsg);
     }
     zmq_msg_close(&msg);
   }
