@@ -329,6 +329,7 @@ static void ezmq_nif_resource_context_cleanup(ErlNifEnv* env, void* arg)
 
 static void ezmq_nif_resource_socket_cleanup(ErlNifEnv* env, void* arg)
 {
+  zmq_close(((ezmq_socket *)arg)->socket);
 }
 
 static int on_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
