@@ -318,6 +318,19 @@ NIF(ezmq_nif_send)
 
 }
 
+int brecv(zmq_msg_t * msg, ezmq_socket * socket, int flags) {
+  int error;
+  if ((error = zmq_msg_init(msg))) {
+    return zmq_errno();
+  }
+
+  if ((error = zmq_recv(socket->socket, msg, flags))) {
+    return zmq_errno();
+  }
+
+  return 0;
+}
+
 NIF(ezmq_nif_brecv)
 {
   ezmq_socket * socket;
@@ -334,12 +347,8 @@ NIF(ezmq_nif_brecv)
   int error;
   zmq_msg_t msg;
 
-  if ((error = zmq_msg_init(&msg))) {
-    return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
-  }
-
-  if ((error = zmq_recv(socket->socket, &msg, _flags))) {
-    return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
+  if ((error = brecv(&msg, socket, _flags))) {
+    return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, error));
   }
 
   ErlNifBinary bin;
@@ -356,6 +365,7 @@ NIF(ezmq_nif_brecv)
 
 NIF(ezmq_nif_recv)
 {
+
   ezmq_recv recv;
 
   enif_self(env, &recv.pid);
@@ -368,26 +378,48 @@ NIF(ezmq_nif_recv)
     return enif_make_badarg(env);
   }
 
-  recv.env = enif_alloc_env();
-  recv.ref = enif_make_ref(recv.env);
-
   int error;
   zmq_msg_t msg;
-  if ((error = zmq_msg_init_size(&msg, sizeof(ezmq_recv)))) {
-    return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
+
+  // try brecv with noblock
+
+  error = brecv(&msg, recv.socket, ZMQ_NOBLOCK);
+
+  if (error == EAGAIN) { // if nothing is there, hand it off to the receiver thread
+    recv.env = enif_alloc_env();
+    recv.ref = enif_make_ref(recv.env);
+    
+    
+    if ((error = zmq_msg_init_size(&msg, sizeof(ezmq_recv)))) {
+      return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
+    }
+    
+    memcpy(zmq_msg_data(&msg), &recv, sizeof(ezmq_recv));
+    
+    if ((error = zmq_send(recv.socket->server, &msg, ZMQ_NOBLOCK))) {
+      return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
+    }
+    
+    if ((error = zmq_msg_close(&msg))) {
+      return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
+    }
+    
+    return enif_make_copy(env, recv.ref);
+  } else if (error == 0) { // return result immediately
+    ErlNifBinary bin;
+    enif_alloc_binary(zmq_msg_size(&msg), &bin);
+    memcpy(bin.data, zmq_msg_data(&msg), zmq_msg_size(&msg));
+    
+    if ((error = zmq_msg_close(&msg))) {
+      enif_release_binary(&bin);
+      return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
+    }
+
+    return enif_make_tuple2(env, enif_make_atom(env, "ok"), enif_make_binary(env, &bin));
+  } else {
+      return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, error));
   }
 
-  memcpy(zmq_msg_data(&msg), &recv, sizeof(ezmq_recv));
-
-  if ((error = zmq_send(recv.socket->server, &msg, ZMQ_NOBLOCK))) {
-    return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
-  }
-
-  if ((error = zmq_msg_close(&msg))) {
-    return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
-  }
-
-  return enif_make_copy(env, recv.ref);
 }
 
 //

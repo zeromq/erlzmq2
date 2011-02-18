@@ -33,13 +33,17 @@ recv(Socket) ->
     recv(Socket, []).
 
 recv(Socket, Flags) when is_list(Flags) ->
-    Ref = ezmq_nif:recv(Socket, sendrecv_flags(Flags)),
-    Timeout = proplists:get_value(timeout, Flags, infinity),
-    receive
-        {Ref, Result} ->
-            {ok, Result}
-    after Timeout ->
-            {error, timeout}
+    case ezmq_nif:recv(Socket, sendrecv_flags(Flags)) of
+        Ref when is_reference(Ref) ->
+            Timeout = proplists:get_value(timeout, Flags, infinity),
+            receive
+                {Ref, Result} ->
+                    {ok, Result}
+            after Timeout ->
+                    {error, timeout}
+            end;
+        Result ->
+            Result
     end.
 
 setsockopt(Socket, Name, Value) ->
