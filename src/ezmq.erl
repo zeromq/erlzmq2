@@ -1,6 +1,6 @@
 -module(ezmq).
 -include_lib("ezmq.hrl").
--export([context/0, context/1, socket/2, bind/2, connect/2, send/2, send/3, brecv/1, brecv/2, setsockopt/3, getsockopt/2]).
+-export([context/0, context/1, socket/2, bind/2, connect/2, send/2, send/3, brecv/1, brecv/2, recv/1, recv/2, setsockopt/3, getsockopt/2]).
 
 context() ->
     context(1).
@@ -28,6 +28,19 @@ brecv(Socket) ->
 
 brecv(Socket, Flags) when is_list(Flags) ->
     ezmq_nif:brecv(Socket, sendrecv_flags(Flags)).
+
+recv(Socket) ->
+    recv(Socket, []).
+
+recv(Socket, Flags) when is_list(Flags) ->
+    Ref = ezmq_nif:recv(Socket, sendrecv_flags(Flags)),
+    Timeout = proplists:get_value(timeout, Flags, infinity),
+    receive
+        {Ref, Result} ->
+            {ok, Result}
+    after Timeout ->
+            {error, timeout}
+    end.
 
 setsockopt(Socket, Name, Value) ->
     ezmq_nif:setsockopt(Socket, option_name(Name), Value).
@@ -59,6 +72,8 @@ socket_type(xsub) ->
     '?ZMQ_XSUB'.
 
 sendrecv_flags([]) ->
+    0;
+sendrecv_flags([{timeout,_}]) ->
     0;
 sendrecv_flags([noblock|Rest]) ->
     ?'ZMQ_NOBLOCK' bor sendrecv_flags(Rest);
