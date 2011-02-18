@@ -436,7 +436,7 @@ static void ezmq_nif_resource_socket_cleanup(ErlNifEnv* env, void* arg)
 
   socket->run_receiver = 0;
   enif_thread_join(socket->receiver_tid, NULL);
-  printf("K-line");fflush(0);
+
   zmq_close(socket->server);
   zmq_close(socket->client);
 
