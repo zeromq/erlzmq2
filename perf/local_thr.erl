@@ -13,7 +13,7 @@ main([BindTo,MessageSizeStr,MessageCountStr]) ->
                             end,[]),
     
     Throughput = MessageCount / Elapsed * 1000000,
-    Megabits = Throughput * MessageSize * 8,
+    Megabits = Throughput * MessageSize * 8 / 1000000,
 
     io:format("message size: ~p [B]~n"
               "message count: ~p~n"

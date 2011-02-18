@@ -62,6 +62,8 @@ socket_type(sub) ->
     ?'ZMQ_SUB';
 socket_type(req) ->
     ?'ZMQ_REQ';
+socket_type(rep) ->
+    ?'ZMQ_REP';
 socket_type(xreq) ->
     ?'ZMQ_XREQ';
 socket_type(xrep) ->
