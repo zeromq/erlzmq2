@@ -8,4 +8,5 @@ main([ConnectTo,MessageSizeStr,MessageCountStr]) ->
     {ok, Socket} = ezmq:socket(Context,pub),
     ezmq:connect(Socket, ConnectTo),
     Msg = list_to_binary(lists:duplicate(MessageSize, 0)),
-    [ ezmq:send(Socket, Msg) || _I <- lists:seq(1, MessageCount) ].    
+    C = lists:seq(1, MessageCount),
+    [ ezmq:send(Socket, Msg) || _I <- C ].    

@@ -8,8 +8,9 @@ main([BindTo,MessageSizeStr,MessageCountStr]) ->
     {ok, Socket} = ezmq:socket(Context, sub),
     ok = ezmq:setsockopt(Socket,subscribe, <<>>),
     ok = ezmq:bind(Socket, BindTo),
+    C = lists:seq(1,MessageCount),
     {Elapsed, _} = timer:tc(fun () ->
-                                    [ {ok, _} = ezmq:brecv(Socket) || _I <- lists:seq(1,MessageCount) ]
+                                    [ ezmq:recv(Socket) || _I <- C ]
                             end,[]),
     
     Throughput = MessageCount / Elapsed * 1000000,
