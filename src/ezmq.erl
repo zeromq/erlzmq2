@@ -69,13 +69,13 @@ socket_type(xreq) ->
 socket_type(xrep) ->
     ?'ZMQ_XREP';
 socket_type(pull) ->
-    '?ZMQ_PULL';
+    ?'ZMQ_PULL';
 socket_type(push) ->
-    '?ZMQ_PUSH';
+    ?'ZMQ_PUSH';
 socket_type(xpub) ->
-    '?ZMQ_XPUB';
+    ?'ZMQ_XPUB';
 socket_type(xsub) ->
-    '?ZMQ_XSUB'.
+    ?'ZMQ_XSUB'.
 
 sendrecv_flags([]) ->
     0;
