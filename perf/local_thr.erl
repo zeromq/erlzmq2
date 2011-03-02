@@ -1,5 +1,6 @@
 #! /usr/bin/env escript
-%%! -smp enable -pa ebin
+%%! -smp enable -pa ebin -pa perf
+%-mode(compile).
 
 main([BindTo,MessageSizeStr,MessageCountStr]) ->
     {MessageSize, _} = string:to_integer(MessageSizeStr),
@@ -8,11 +9,11 @@ main([BindTo,MessageSizeStr,MessageCountStr]) ->
     {ok, Socket} = ezmq:socket(Context, sub),
     ok = ezmq:setsockopt(Socket,subscribe, <<>>),
     ok = ezmq:bind(Socket, BindTo),
-    C = lists:seq(1,MessageCount),
-    {Elapsed, _} = timer:tc(fun () ->
-                                    [ ezmq:recv(Socket) || _I <- C ]
-                            end,[]),
-    
+    ezmq:recv(Socket),
+    Start = now(),
+    ezmq_perf:recv_loop(MessageCount-1, Socket),
+    Elapsed = timer:now_diff(now(), Start),
+
     Throughput = MessageCount / Elapsed * 1000000,
     Megabits = Throughput * MessageSize * 8 / 1000000,
 
@@ -20,5 +21,5 @@ main([BindTo,MessageSizeStr,MessageCountStr]) ->
               "message count: ~p~n"
               "mean throughput: ~p [msg/s]~n"
               "mean throughput: ~p [Mb/s]~n",
-              [MessageSize, MessageCount, Throughput, Megabits]).   
-    
+              [MessageSize, MessageCount, Throughput, Megabits]).
+

@@ -19,3 +19,7 @@ dependencies: deps/zeromq2/src/.libs/libzmq.a
 
 compile: dependencies
 	@./rebar compile
+
+perf: compile
+	@cd perf && erlc ezmq_perf.erl
+
