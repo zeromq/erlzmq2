@@ -445,7 +445,9 @@ void * receiver_thread(void * handle) {
     zmq_msg_init(&msg);
     if (!zmq_recv(socket->client, &msg, 0)) {
       recv = (ezmq_recv *) zmq_msg_data(&msg);
-      
+      if (recv->env == NULL) {
+        break;
+      }
       ErlNifBinary bin;
       
       rcvmsg(&bin, &rmsg, socket, recv->flags);
@@ -471,6 +473,14 @@ static void ezmq_nif_resource_socket_cleanup(ErlNifEnv* env, void* arg)
   ezmq_socket * socket = (ezmq_socket *)arg;
 
   socket->run_receiver = 0;
+  zmq_msg_t msg;
+  ezmq_recv recv;
+  recv.env = NULL;
+  zmq_msg_init_size(&msg, sizeof(ezmq_recv));
+  memcpy(zmq_msg_data(&msg), &recv, sizeof(ezmq_recv));
+  zmq_send(socket->server, &msg, ZMQ_NOBLOCK);
+  zmq_msg_close(&msg);
+
   enif_thread_join(socket->receiver_tid, NULL);
 
   zmq_close(socket->server);
