@@ -11,10 +11,11 @@ typedef struct _ezmq_context {
   void * context;
   void * ipc_socket;
   char * ipc_socket_name;
+  int running;
+  ErlNifCond * cond;
+  ErlNifMutex * mutex;
   ErlNifTid polling_tid;
-  TAILQ_ENTRY(_ezmq_context) contexts;
 } ezmq_context;
-TAILQ_HEAD(contexts_head, _ezmq_context);
 
 typedef struct _ezmq_socket {
   void * socket;
@@ -71,9 +72,6 @@ NIF(ezmq_nif_context)
 
   handle->context = zmq_init(_threads);
 
-  struct contexts_head * ctx_queue = (struct contexts_head*)enif_priv_data(env);
-  TAILQ_INSERT_TAIL(ctx_queue, handle, contexts);
-
   char socket_id[64];
   sprintf(socket_id, "inproc://ezmq-%ld", (long int) handle);
   handle->ipc_socket_name = strdup(socket_id);
@@ -81,8 +79,28 @@ NIF(ezmq_nif_context)
   handle->ipc_socket = zmq_socket(handle->context, ZMQ_PUSH);
   zmq_bind(handle->ipc_socket,socket_id);
 
-  enif_thread_create("ezmq_polling_thread", &handle->polling_tid,
-                     polling_thread, handle, NULL);
+  handle->running = 0;
+  handle->mutex = enif_mutex_create("ezmq_context_mutex");
+  handle->cond = enif_cond_create("ezmq_context_cond");
+
+  enif_mutex_lock(handle->mutex);
+  int err;
+  if ((err = enif_thread_create("ezmq_polling_thread", &handle->polling_tid,
+                                polling_thread, handle, NULL))) {
+    enif_mutex_unlock(handle->mutex);
+    enif_mutex_destroy(handle->mutex);
+    enif_cond_destroy(handle->cond);
+    zmq_close(handle->ipc_socket);
+    free(handle->ipc_socket_name);
+    zmq_term(handle->context);
+    enif_release_resource(handle);
+    return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                                 enif_make_int(env, err));
+  }
+  while (handle->running == 0) {
+    enif_cond_wait(handle->cond, handle->mutex);
+  }
+  enif_mutex_unlock(handle->mutex);
 
   ERL_NIF_TERM result = enif_make_resource(env, handle);
   enif_release_resource(handle);
@@ -478,9 +496,12 @@ void * polling_thread(void * handle)
   zmq_connect(ipc_socket,ctx->ipc_socket_name);
 
   int nreaders = 1;
-  int running = 1;
+  enif_mutex_lock(ctx->mutex);
+  ctx->running = 1;
+  enif_cond_signal(ctx->cond);
+  enif_mutex_unlock(ctx->mutex);
 
-  while (running) {
+  while (ctx->running) {
     int i;
     zmq_msg_t msg;
     ezmq_recv *r, *rtmp;
@@ -525,7 +546,7 @@ void * polling_thread(void * handle)
       if (!zmq_recv(items[0].socket, &msg, 0)) {
         ezmq_recv * recv = (ezmq_recv *) zmq_msg_data(&msg);
         if (recv->env == NULL) {
-          running = 0;
+          ctx->running = 0;
           goto out;
         }
         nreaders++;
@@ -551,7 +572,20 @@ out:
 
 static void ezmq_nif_resource_context_cleanup(ErlNifEnv* env, void* arg)
 {
-  zmq_term(((ezmq_context *)arg)->context);
+  ezmq_context * ctx = (ezmq_context *)arg;
+  zmq_msg_t msg;
+  ezmq_recv recv;
+  recv.env = NULL;
+  zmq_msg_init_size(&msg, sizeof(ezmq_recv));
+  memcpy(zmq_msg_data(&msg), &recv, sizeof(ezmq_recv));
+  zmq_send(ctx->ipc_socket, &msg, ZMQ_NOBLOCK);
+  zmq_msg_close(&msg);
+  enif_thread_join(ctx->polling_tid, NULL);
+  zmq_close(ctx->ipc_socket);
+  free(ctx->ipc_socket_name);
+  enif_mutex_destroy(ctx->mutex);
+  enif_cond_destroy(ctx->cond);
+  zmq_term(ctx->context);
 }
 
 static void ezmq_nif_resource_socket_cleanup(ErlNifEnv* env, void* arg)
@@ -574,33 +608,10 @@ static int on_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
                                   &ezmq_nif_resource_socket_cleanup,
                                   ERL_NIF_RT_CREATE | ERL_NIF_RT_TAKEOVER,
                                   0);
-
-  struct contexts_head * contexts_queue;
-  contexts_queue = malloc(sizeof(struct contexts_head));
-  TAILQ_INIT(contexts_queue);
-  *priv_data = (void*)contexts_queue;
   return 0;
 }
 
 static void on_unload(ErlNifEnv* env, void* priv_data) {
-  struct contexts_head * ctx_queue = (struct contexts_head *)priv_data;
-  ezmq_context * ctx;
-  while ((ctx = ctx_queue->tqh_first) != NULL) {
-    zmq_msg_t msg;
-    ezmq_recv recv;
-    recv.env = NULL;
-    zmq_msg_init_size(&msg, sizeof(ezmq_recv));
-    memcpy(zmq_msg_data(&msg), &recv, sizeof(ezmq_recv));
-    zmq_send(ctx->ipc_socket, &msg, ZMQ_NOBLOCK);
-    zmq_msg_close(&msg);
-    enif_thread_join(ctx->polling_tid, NULL);
-    zmq_close(ctx->ipc_socket);
-    free(ctx->ipc_socket_name);
-    zmq_term(ctx->context);
-    TAILQ_REMOVE(ctx_queue, ctx_queue->tqh_first, contexts);
-    free(ctx);
-  }
-  free(ctx_queue);
 }
 
 ERL_NIF_INIT(ezmq_nif, nif_funcs, &on_load, NULL, NULL, &on_unload);
