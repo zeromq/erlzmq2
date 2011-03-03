@@ -184,10 +184,12 @@ NIF(ezmq_nif_setsockopt)
   ErlNifUInt64 _uint64;
   ErlNifSInt64 _int64;
   ErlNifBinary _bin;
+  int _int;
   void *_option_value;
   size_t _option_len = 8; // 64 bit
 
-  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_socket, (void **) &socket)) {
+  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_socket,
+                                       (void **) &socket)) {
     return enif_make_badarg(env);
   }
 
@@ -195,28 +197,56 @@ NIF(ezmq_nif_setsockopt)
     return enif_make_badarg(env);
   }
 
-  if (!enif_get_uint64(env, argv[2], &_uint64)) {
-    if (!enif_get_int64(env, argv[2], &_int64)) {
-        if (!enif_inspect_iolist_as_binary(env, argv[2], &_bin)) {
-          return enif_make_badarg(env);
-        }  else {
-          _option_value = _bin.data;
-          _option_len = _bin.size;
+  switch (_option_name) {
+    case ZMQ_HWM: // uint64_t
+    case ZMQ_AFFINITY:
+    case ZMQ_SNDBUF:
+    case ZMQ_RCVBUF:
+        if (!enif_get_uint64(env, argv[2], &_uint64)) {
+            goto badarg;
         }
-    } else {
-         _option_value = &_int64;
-    }
-  } else {
-    _option_value = &_uint64;
+        _option_value = &_uint64;
+        break;
+    case ZMQ_SWAP: // int64_t
+    case ZMQ_RATE:
+    case ZMQ_RECOVERY_IVL:
+    case ZMQ_MCAST_LOOP:
+        if (!enif_get_int64(env, argv[2], &_int64)) {
+            goto badarg;
+        }
+        _option_value = &_int64;
+        break;
+    case ZMQ_IDENTITY: // binary
+    case ZMQ_SUBSCRIBE:
+    case ZMQ_UNSUBSCRIBE:
+        if (!enif_inspect_iolist_as_binary(env, argv[2], &_bin)) {
+            goto badarg;
+        }
+        _option_value = _bin.data;
+        _option_len = _bin.size;
+        break;
+    case ZMQ_LINGER: // int
+    case ZMQ_RECONNECT_IVL:
+    case ZMQ_BACKLOG:
+        if (!enif_get_int(env, argv[1], &_int)) {
+            goto badarg;
+        }
+        _option_value = &_int;
+        _option_len = sizeof(int);
+        break;
+    default:
+        goto badarg;
   }
 
-  int error;
-
-  if (!(error = zmq_setsockopt(socket->socket, _option_name, _option_value, _option_len))) {
-    return enif_make_atom(env, "ok");
-  } else {
-    return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
+  if (zmq_setsockopt(socket->socket, _option_name,
+                     _option_value, _option_len)) {
+    return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                                 enif_make_int(env, zmq_errno()));
   }
+  return enif_make_atom(env, "ok");
+
+badarg:
+  return enif_make_badarg(env);
 }
 
 NIF(ezmq_nif_getsockopt)
@@ -227,57 +257,68 @@ NIF(ezmq_nif_getsockopt)
   int64_t _option_value_64;
   int64_t _option_value_u64;
   char _option_value[255];
+  int _option_value_int;
   size_t _option_len = 8; // 64 bit
 
-  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_socket, (void **) &socket)) {
+  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_socket,
+                                       (void **) &socket)) {
     return enif_make_badarg(env);
   }
 
   if (!enif_get_int(env, argv[1], &_option_name)) {
     return enif_make_badarg(env);
   }
-  int error;
-  
+
   switch(_option_name) {
-  case ZMQ_RCVMORE:
-  case ZMQ_SWAP:
-  case ZMQ_RATE:
-  case ZMQ_RECOVERY_IVL:
-  case ZMQ_MCAST_LOOP:
-  case ZMQ_FD:
-    // int64_t
-    if (!(error = zmq_getsockopt(socket->socket, _option_name, &_option_value_64, &_option_len))) {
-      return enif_make_tuple2(env, enif_make_atom(env, "ok"), enif_make_int64(env, _option_value_64));
-    } else {
-      return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
-    }
-    break;
-  case ZMQ_HWM:
-  case ZMQ_AFFINITY:
-  case ZMQ_SNDBUF:
-  case ZMQ_RCVBUF:
-    // uint64_t
-    if (!(error = zmq_getsockopt(socket->socket, _option_name, &_option_value_u64, &_option_len))) {
-      return enif_make_tuple2(env, enif_make_atom(env, "ok"), enif_make_uint64(env, _option_value_u64));
-    } else {
-      return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
-    }
-    break;
-  case ZMQ_SUBSCRIBE:
-  case ZMQ_UNSUBSCRIBE:
-  case ZMQ_IDENTITY:
-    // binary
-    if (!(error = zmq_getsockopt(socket->socket, _option_name, _option_value, &_option_len))) {
+    case ZMQ_RCVMORE: // int64_t
+    case ZMQ_SWAP:
+    case ZMQ_RATE:
+    case ZMQ_RECOVERY_IVL:
+    case ZMQ_RECOVERY_IVL_MSEC:
+    case ZMQ_MCAST_LOOP:
+      if (zmq_getsockopt(socket->socket, _option_name,
+                         &_option_value_64, &_option_len)) {
+        goto error;
+      }
+      return enif_make_tuple2(env, enif_make_atom(env, "ok"),
+                                   enif_make_int64(env, _option_value_64));
+    case ZMQ_HWM: // uint64_t
+    case ZMQ_AFFINITY:
+    case ZMQ_SNDBUF:
+    case ZMQ_RCVBUF:
+      if (zmq_getsockopt(socket->socket, _option_name,
+                         &_option_value_u64, &_option_len)) {
+        goto error;
+      }
+      return enif_make_tuple2(env, enif_make_atom(env, "ok"),
+                                   enif_make_uint64(env, _option_value_u64));
+    case ZMQ_IDENTITY: // binary
+      if (zmq_getsockopt(socket->socket, _option_name,
+                         _option_value, &_option_len)) {
+        goto error;
+      }
       enif_alloc_binary(_option_len, &_bin);
       memcpy(_bin.data, _option_value, _option_len);
-      return enif_make_tuple2(env, enif_make_atom(env, "ok"), enif_make_binary(env, &_bin));
-    }  else {
-      return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
-    }
-    break;
+      return enif_make_tuple2(env, enif_make_atom(env, "ok"),
+                                   enif_make_binary(env, &_bin));
+    case ZMQ_TYPE: // int
+    case ZMQ_LINGER:
+    case ZMQ_RECONNECT_IVL:
+    case ZMQ_RECONNECT_IVL_MAX:
+    case ZMQ_BACKLOG:
+    case ZMQ_FD: // FIXME: ZMQ_FD returns SOCKET on Windows
+      if (zmq_getsockopt(socket->socket, _option_name,
+                         &_option_value_int, &_option_len)) {
+        goto error;
+      }
+      return enif_make_tuple2(env, enif_make_atom(env, "ok"),
+                                   enif_make_int(env, _option_value_int));
+    default:
+      return enif_make_badarg(env);
   }
-  
-  return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_atom(env, "unknown"));
+error:
+  return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                               enif_make_int(env, zmq_errno()));
 }
 
 NIF(ezmq_nif_send)

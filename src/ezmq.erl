@@ -108,5 +108,20 @@ option_name(sndbuf) ->
     ?'ZMQ_SNDBUF';
 option_name(rcvbuf) ->
     ?'ZMQ_RCVBUF';
+option_name(rcvmore) ->
+    ?'ZMQ_RCVMORE';
 option_name(fd) ->
-    ?'ZMQ_FD'.
+    ?'ZMQ_FD';
+option_name(events) ->
+    ?'ZMQ_EVENTS';
+option_name(linger) ->
+    ?'ZMQ_LINGER';
+option_name(reconnect_ivl) ->
+    ?'ZMQ_RECONNECT_IVL';
+option_name(backlog) ->
+    ?'ZMQ_BACKLOG';
+option_name(recovery_ivl_msec) ->
+    ?'ZMQ_RECOVERY_IVL_MSEC';
+option_name(reconnect_ivl_max) ->
+    ?'ZMQ_RECONNECT_IVL_MAX'.
+
