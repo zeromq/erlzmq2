@@ -36,3 +36,20 @@
 -define('ZMQ_NOBLOCK',    1).
 -define('ZMQ_SNDMORE',    2).
 
+%% Types
+-type ezmq_socket_type() :: pair | pub | sub | req | rep | xreq | xrep | pull | push | xpub | xsub.
+-type ezmq_endpoint() :: string().
+-type ezmq_error() :: {error, integer()}.
+-type ezmq_data() :: iolist().
+
+-opaque ezmq_context() :: binary().
+-opaque ezmq_socket() :: binary().
+
+-type ezmq_send_recv_flag() :: noblock | sndmore | {timeout, non_neg_integer()}.
+-type ezmq_send_recv_flags() :: list(ezmq_send_recv_flag).
+
+-type ezmq_sockopt() :: hwm | swap | affinity | identity | subscribe | unsubscribe | rate | recovery_ivl | mcast_loop |
+                        sndbuf | rcvbuf | rcvmore | fd | events | linger | reconnect_ivl | backlog | recovery_ivl_msec |
+                        reconnect_ivl_max.
+
+-type ezmq_sockopt_value() :: integer() | iolist().
