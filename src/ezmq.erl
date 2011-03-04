@@ -71,7 +71,7 @@ bind(Socket, Endpoint) ->
 connect(Socket, Endpoint) ->
     ezmq_result(ezmq_nif:connect(Socket, Endpoint)).
 
-%% @equiv send(Socket, Msg, 0)
+%% @equiv send(Socket, Msg, [])
 %% @spec send(ezmq_socket(), ezmq_data()) -> ok | ezmq_error()
 -spec send(Socket :: ezmq_socket(), Data :: ezmq_data()) -> ok | ezmq_error().
 
