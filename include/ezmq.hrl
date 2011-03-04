@@ -91,7 +91,7 @@
                            einprogress | efsm | enocompatproto | eterm |
                            emthread | errno() | {unknown, integer()}.
 
-%% @type ezmq_error() = {error, ezmq_error_type()} 
+%% @type ezmq_error() = {error, ezmq_error_type()}.
 %% Error tuples returned by most API functions.
 -type ezmq_error() :: {error, ezmq_error_type()}.
 
