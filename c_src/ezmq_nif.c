@@ -124,6 +124,10 @@ NIF(ezmq_nif_socket)
   if (!enif_get_int(env, argv[1], &_type)) {
     return enif_make_badarg(env);
   }
+  
+  if (!ctx->running) {
+    return enif_make_badarg(env);
+  }
 
   ezmq_socket * handle = enif_alloc_resource(ezmq_nif_resource_socket,
                                              sizeof(ezmq_socket));
