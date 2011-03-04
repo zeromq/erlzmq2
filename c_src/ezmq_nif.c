@@ -44,6 +44,8 @@ NIF(ezmq_nif_getsockopt);
 NIF(ezmq_nif_send);
 NIF(ezmq_nif_brecv);
 NIF(ezmq_nif_recv);
+NIF(ezmq_nif_close);
+NIF(ezmq_nif_term);
 
 static ErlNifFunc nif_funcs[] =
 {
@@ -55,7 +57,9 @@ static ErlNifFunc nif_funcs[] =
   {"getsockopt", 2, ezmq_nif_getsockopt},
   {"send", 3, ezmq_nif_send},
   {"brecv", 2, ezmq_nif_brecv},
-  {"recv", 2, ezmq_nif_recv}
+  {"recv", 2, ezmq_nif_recv},
+  {"close", 1, ezmq_nif_close},
+  {"term", 1, ezmq_nif_term}
 };
 
 void * polling_thread(void * handle);
@@ -570,9 +574,30 @@ out:
   return NULL;
 }
 
-static void ezmq_nif_resource_context_cleanup(ErlNifEnv* env, void* arg)
+NIF(ezmq_nif_close)
 {
-  ezmq_context * ctx = (ezmq_context *)arg;
+
+  ezmq_socket * socket;
+
+  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_socket, (void **) &socket)) {
+    return enif_make_badarg(env);
+  }
+
+  if (-1 == zmq_close(socket->socket)) {
+    return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
+  } else {
+    return enif_make_atom(env, "ok");
+  }
+}
+
+NIF(ezmq_nif_term) 
+{
+  ezmq_context * ctx;
+
+  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_context, (void **) &ctx)) {
+    return enif_make_badarg(env);
+  }
+
   zmq_msg_t msg;
   ezmq_recv recv;
   recv.env = NULL;
@@ -585,29 +610,28 @@ static void ezmq_nif_resource_context_cleanup(ErlNifEnv* env, void* arg)
   free(ctx->ipc_socket_name);
   enif_mutex_destroy(ctx->mutex);
   enif_cond_destroy(ctx->cond);
-  zmq_term(ctx->context);
-}
 
-static void ezmq_nif_resource_socket_cleanup(ErlNifEnv* env, void* arg)
-{
-  ezmq_socket * socket = (ezmq_socket *)arg;
-  zmq_close(socket->socket);
+  if (-1 == zmq_term(ctx->context)) {
+    return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
+  } else {
+    return enif_make_atom(env, "ok");
+  }
 }
 
 static int on_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
 {
   ezmq_nif_resource_context =
     enif_open_resource_type(env, "ezmq_nif",
-                                 "ezmq_nif_resource_context",
-                                 &ezmq_nif_resource_context_cleanup,
-                                 ERL_NIF_RT_CREATE | ERL_NIF_RT_TAKEOVER,
-                                 0);
+                            "ezmq_nif_resource_context",
+                            NULL,
+                            ERL_NIF_RT_CREATE | ERL_NIF_RT_TAKEOVER,
+                            0);
   ezmq_nif_resource_socket =
     enif_open_resource_type(env, "ezmq_nif",
-                                 "ezmq_nif_resource_socket",
-                                  &ezmq_nif_resource_socket_cleanup,
-                                  ERL_NIF_RT_CREATE | ERL_NIF_RT_TAKEOVER,
-                                  0);
+                            "ezmq_nif_resource_socket",
+                            NULL,
+                            ERL_NIF_RT_CREATE | ERL_NIF_RT_TAKEOVER,
+                            0);
   return 0;
 }
 

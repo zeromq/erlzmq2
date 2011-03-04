@@ -13,5 +13,7 @@ main([BindTo,MessageSizeStr,RoundtripCountStr]) ->
             RMsg = Msg,
             ezmq:send(Socket, Msg)
         end,
-    [ Do() || _I <- lists:seq(1,RoundtripCount) ].
+    [ Do() || _I <- lists:seq(1,RoundtripCount) ],
+    ezmq:close(Socket),
+    ezmq:term(Context).
 

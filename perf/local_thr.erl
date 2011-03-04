@@ -21,5 +21,8 @@ main([BindTo,MessageSizeStr,MessageCountStr]) ->
               "message count: ~p~n"
               "mean throughput: ~p [msg/s]~n"
               "mean throughput: ~p [Mb/s]~n",
-              [MessageSize, MessageCount, Throughput, Megabits]).
+              [MessageSize, MessageCount, Throughput, Megabits]),
+   
+    ezmq:close(Socket),
+    ezmq:term(Context).
 

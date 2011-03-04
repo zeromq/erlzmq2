@@ -1,6 +1,6 @@
 -module(ezmq).
 -include_lib("ezmq.hrl").
--export([context/0, context/1, socket/2, bind/2, connect/2, send/2, send/3, brecv/1, brecv/2, recv/1, recv/2, setsockopt/3, getsockopt/2]).
+-export([context/0, context/1, socket/2, bind/2, connect/2, send/2, send/3, brecv/1, brecv/2, recv/1, recv/2, setsockopt/3, getsockopt/2, close/1, term/1]).
 
 context() ->
     context(1).
@@ -51,6 +51,12 @@ setsockopt(Socket, Name, Value) ->
 
 getsockopt(Socket, Name) ->
     ezmq_nif:getsockopt(Socket, option_name(Name)).
+
+close(Socket) ->
+    ezmq_nif:close(Socket).
+
+term(Context) ->
+    ezmq_nif:term(Context).
 
 %% Private
 

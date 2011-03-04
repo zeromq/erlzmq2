@@ -22,4 +22,6 @@ main([ConnectTo,MessageSizeStr,RoundtripCountStr]) ->
     io:format("message size: ~p [B]~n"
               "roundtrip count: ~p~n"
               "average latency: ~p [us]~n",
-              [MessageSize, RoundtripCount, Latency]).
+              [MessageSize, RoundtripCount, Latency]),
+   ezmq:close(Socket),
+   ezmq:term(Context).
