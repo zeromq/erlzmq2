@@ -171,12 +171,15 @@ option_name(reconnect_ivl_max) ->
 
 -spec ezmq_result(ok) -> ok;
                  ({ok, Value :: term()}) -> Value :: term();
+                 ({error, Value :: atom()}) -> Value :: atom();
                  ({error, integer()}) -> {error, ezmq_error_type()}.
 
 ezmq_result(ok) ->
     ok;
 ezmq_result({ok, _} = Result) ->
     Result;
+ezmq_result({error, Code} = Error) when is_atom(Code) ->
+    Error;
 ezmq_result({error, Code}) when is_integer(Code) andalso Code > 156384712 ->
     ezmq_result({error, ezmq, Code - 156384712});
 ezmq_result({error, ezmq, 1}) ->
