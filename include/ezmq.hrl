@@ -39,7 +39,20 @@
 %% Types
 -type ezmq_socket_type() :: pair | pub | sub | req | rep | xreq | xrep | pull | push | xpub | xsub.
 -type ezmq_endpoint() :: string().
--type ezmq_error() :: {error, integer()}.
+
+-type errno() :: eperm | enoent | srch | eintr | eio | enxio | ebad | echild | edeadlk | enomem | eacces | efault |
+                 enotblk | ebusy | eexist | exdev | enodev | enotdir | eisdir | einval | enfile | emfile | enotty | 
+                 etxtbsy | efbig | enospc | espipe | erofs | emlink | epipe | eagain | einprogress | ealready |
+                 enotsock | edestaddrreq | emsgsize | eprototype | enoprotoopt | eprotonosupport | esocktnosupport |
+                 enotsup | epfnosupport | eafnosupport | eaddrinuse | eaddrnotavail | enetdown | enetunreach |
+                 enetreset | econnaborted | econnreset | enobufs | eisconn | enotconn | eshutdown | etoomanyrefs |
+                 etimedout | econnrefused | eloop | enametoolong.
+
+-type ezmq_error_type() :: enotsup | eprotonosupport | enobufs | enetdown | eaddrinuse | eaddnotavail | econnrefused | 
+                           einprogress | efsm | enocompatproto | eterm | emthread | errno() | {unknown, integer()}.
+
+-type ezmq_error() :: {error, ezmq_error_type()}.
+
 -type ezmq_data() :: iolist().
 
 -opaque ezmq_context() :: binary().
