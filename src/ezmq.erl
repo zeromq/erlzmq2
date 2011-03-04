@@ -63,7 +63,7 @@ recv(Socket, Flags) when is_list(Flags) ->
                 {Ref, Result} ->
                     {ok, Result}
             after Timeout ->
-                    {error, timeout}
+                    {error, timeout, Ref}
             end;
         Result ->
             ezmq_result(Result)
@@ -98,7 +98,7 @@ term(Context, Timeout) ->
                 {Ref, Result} ->
                     Result
             after Timeout ->
-                    {error, timeout}
+                    {error, timeout, Ref}
             end;
         Result ->
             ezmq_result(Result)

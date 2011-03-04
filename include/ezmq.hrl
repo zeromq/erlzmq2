@@ -51,7 +51,7 @@
 -type ezmq_error_type() :: enotsup | eprotonosupport | enobufs | enetdown | eaddrinuse | eaddnotavail | econnrefused | 
                            einprogress | efsm | enocompatproto | eterm | emthread | errno() | {unknown, integer()}.
 
--type ezmq_error() :: {error, ezmq_error_type()}.
+-type ezmq_error() :: {error, ezmq_error_type()} | {error, timeout(), reference()}.
 
 -type ezmq_data() :: iolist().
 

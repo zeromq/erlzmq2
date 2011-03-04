@@ -69,15 +69,17 @@ shutdown_no_blocking_test() ->
 shutdown_blocking_test() ->
     {ok, C} = ezmq:context(),
     {ok, _S} = ezmq:socket(C, pub),
-    ?assertEqual({error, timeout}, ezmq:term(C, 500)).
+    ?assertMatch({error, timeout, _}, ezmq:term(C, 500)).
 
 shutdown_blocking_unblocking_test() ->
     {ok, C} = ezmq:context(),
     {ok, S} = ezmq:socket(C, pub),
-    ?assertEqual({error, timeout}, ezmq:term(C, 500)),
+    V = ezmq:term(C, 500),
+    ?assertMatch({error, timeout, _}, V),
+    {error, timeout, Ref} = V,
     ezmq:close(S),
     receive 
-        {R, ok} when is_reference(R) ->
+        {Ref, ok} ->
             ok
     end.
 
