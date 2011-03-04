@@ -24,6 +24,12 @@ The ezmq source code can be found on [http://github.com/yrashk/ezmq GitHub]
     $ git clone http://github.com/yrashk/ezmq.git
 '''
 
+It is also available on [http://erlagner.org/ Agner]:
+
+```
+    $ agner build ezmq
+'''
+
 == Building ==
 
 Build the code
