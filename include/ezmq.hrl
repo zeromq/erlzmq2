@@ -116,10 +116,10 @@
 %% <a href="http://api.zeromq.org/master:zmq_recv">zmq_recv</a></i>
 -type ezmq_send_recv_flag() :: noblock | sndmore | recvmore | {timeout, timeout()}.
 
-%% @type ezmq_send_recv_flags() = list(ezmq_send_recv_flag).
+%% @type ezmq_send_recv_flags() = list(ezmq_send_recv_flag()).
 %% A list of flags to use with {@link ezqm:send/3. send/3} and
 %% {@link ezmq:recv/2. recv/2}
--type ezmq_send_recv_flags() :: list(ezmq_send_recv_flag).
+-type ezmq_send_recv_flags() :: list(ezmq_send_recv_flag()).
 
 %% @type ezmq_sockopt() = hwm | swap | affinity | identity | subscribe |
 %% unsubscribe | rate | recovery_ivl | mcast_loop | sndbuf | rcvbuf |
