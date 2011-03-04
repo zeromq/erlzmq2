@@ -76,7 +76,7 @@ connect(Socket, Endpoint) ->
 -spec send(Socket :: ezmq_socket(), Data :: ezmq_data()) -> ok | ezmq_error().
 
 send(Socket, Binary) ->
-    ezmq_result(send(Socket, Binary, [])).
+    send(Socket, Binary, []).
 
 %% @doc Send a message on a socket.
 %% <br />
@@ -113,7 +113,7 @@ brecv(Socket, Flags) when is_list(Flags) ->
 -spec recv(Socket :: ezmq_socket()) -> {ok, ezmq_data()} | ezmq_error().
 
 recv(Socket) ->
-    ezmq_result(recv(Socket, [])).
+    recv(Socket, []).
 
 %% @doc Receive a message from a socket.
 %% <br />
@@ -121,7 +121,7 @@ recv(Socket) ->
 %% <a href="http://api.zeromq.org/master:zmq_recv">zmq_recv</a>.</i>
 %% @end
 %% @spec recv(ezmq_socket(), ezmq_send_recv_flags()) -> {ok, ezmq_data()} | ezmq_error()
--spec recv(Socket :: ezmq_socket(), Flags :: ezmq_send_recv_flags()) -> {ok, ezmq_data()} | ezmq_error().
+-spec recv(Socket :: ezmq_socket(), Flags :: ezmq_send_recv_flags()) -> {ok, ezmq_data()} | ezmq_error() | {error, timeout, reference()}.
 
 recv(Socket, Flags) when is_list(Flags) ->
     case ezmq_nif:recv(Socket, sendrecv_flags(Flags)) of
@@ -188,7 +188,7 @@ term(Context) ->
 %% <a href="http://api.zeromq.org/master:zmq_term">zmq_term</a>.</i>
 %% @end
 %% @spec term(ezmq_context(), timeout()) -> ok | ezmq_error()
--spec term(Context :: ezmq_context(), Timeout :: timeout()) -> ok | ezmq_error().
+-spec term(Context :: ezmq_context(), Timeout :: timeout()) -> ok | ezmq_error() | {error, timeout, reference()}.
 
 term(Context, Timeout) ->
     case ezmq_nif:term(Context) of
@@ -287,7 +287,8 @@ option_name(reconnect_ivl_max) ->
 -spec ezmq_result(ok) -> ok;
                  ({ok, Value :: term()}) -> Value :: term();
                  ({error, Value :: atom()}) -> Value :: atom();
-                 ({error, integer()}) -> {error, ezmq_error_type()}.
+                 ({error, integer()}) -> {error, ezmq_error_type()};
+                 ({error, ezmq, integer()}) -> {error, ezmq_error_type()}.
 
 ezmq_result(ok) ->
     ok;

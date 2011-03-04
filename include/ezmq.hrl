@@ -91,9 +91,9 @@
                            einprogress | efsm | enocompatproto | eterm |
                            emthread | errno() | {unknown, integer()}.
 
-%% @type ezmq_error() = {error, ezmq_error_type()} | {error, timeout(), reference()}.
+%% @type ezmq_error() = {error, ezmq_error_type()} 
 %% Error tuples returned by most API functions.
--type ezmq_error() :: {error, ezmq_error_type()} | {error, timeout(), reference()}.
+-type ezmq_error() :: {error, ezmq_error_type()}.
 
 %% @type ezmq_data() = iolist().
 %% Data to be sent with {@link ezmq:send/3. send/3} or received with
