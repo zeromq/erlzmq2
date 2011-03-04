@@ -5,3 +5,4 @@ c_src/*.o
 deps
 perf/*.beam
 .eunit
+doc
