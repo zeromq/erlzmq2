@@ -369,14 +369,12 @@ NIF(ezmq_nif_send)
   }
 
   memcpy(zmq_msg_data(&msg), _bin.data, _bin.size);
-  
+
   if ((error = zmq_send(socket->socket, &msg, _flags))) {
     return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
   }
-  
-  if ((error = zmq_msg_close(&msg))) {
-    return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
-  }
+
+  zmq_msg_close(&msg);
 
   return enif_make_atom(env, "ok");
 
@@ -418,11 +416,8 @@ NIF(ezmq_nif_brecv)
   ErlNifBinary bin;
   enif_alloc_binary(zmq_msg_size(&msg), &bin);
   memcpy(bin.data, zmq_msg_data(&msg), zmq_msg_size(&msg));
-  
-  if ((error = zmq_msg_close(&msg))) {
-    enif_release_binary(&bin);
-    return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
-  }
+
+  zmq_msg_close(&msg);
 
   return enif_make_tuple2(env, enif_make_atom(env, "ok"), enif_make_binary(env, &bin));
 }
@@ -433,7 +428,8 @@ NIF(ezmq_nif_recv)
   ezmq_recv recv;
   ezmq_socket * socket;
 
-  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_socket, (void **) &socket)) {
+  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_socket,
+                                       (void **) &socket)) {
     return enif_make_badarg(env);
   }
 
@@ -451,41 +447,43 @@ NIF(ezmq_nif_recv)
   error = brecv(&msg, socket, ZMQ_NOBLOCK);
 
   if (error == EAGAIN) { // if nothing is there, hand it off to the receiver thread
+    if (recv.flags & ZMQ_NOBLOCK) {
+      goto out;
+    }
     recv.env = enif_alloc_env();
     recv.ref = enif_make_ref(recv.env);
     recv.socket = socket->socket;
 
     if ((error = zmq_msg_init_size(&msg, sizeof(ezmq_recv)))) {
-        goto out;
+        goto q_err;
     }
 
     memcpy(zmq_msg_data(&msg), &recv, sizeof(ezmq_recv));
 
     if ((error = zmq_send(socket->context->ipc_socket, &msg, 0))) {
-        goto out;
+        goto q_err;
     }
 
     zmq_msg_close(&msg);
 
     return enif_make_copy(env, recv.ref);
-out:
+q_err:
     enif_free_env(recv.env);
-    return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
+    return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                                 enif_make_int(env, zmq_errno()));
   } else if (error == 0) { // return result immediately
     ErlNifBinary bin;
     enif_alloc_binary(zmq_msg_size(&msg), &bin);
     memcpy(bin.data, zmq_msg_data(&msg), zmq_msg_size(&msg));
-    
-    if ((error = zmq_msg_close(&msg))) {
-      enif_release_binary(&bin);
-      return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
-    }
 
-    return enif_make_tuple2(env, enif_make_atom(env, "ok"), enif_make_binary(env, &bin));
-  } else {
-      return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, error));
+    zmq_msg_close(&msg);
+
+    return enif_make_tuple2(env, enif_make_atom(env, "ok"),
+                                 enif_make_binary(env, &bin));
   }
-
+out:
+  return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                               enif_make_int(env, error));
 }
 
 void * polling_thread(void * handle)
