@@ -7,12 +7,18 @@ else
 ZMQ_FLAGS=
 endif
 
+ifeq ($(ZEROMQ_VERSION),"")
+ZEROMQ_VERSION=master
+endif
+
 all: perf
 
-deps/zeromq2/.git/HEAD:
-	@git submodule init
-	@git submodule update
-deps/zeromq2/src/.libs/libzmq.a: deps/zeromq2/.git/HEAD
+deps/zeromq2:
+	@mkdir -p deps
+	@git clone git://github.com/zeromq/zeromq2.git deps/zeromq2
+	@cd deps/zeromq2 && git checkout $(ZEROMQ_VERSION)
+
+deps/zeromq2/src/.libs/libzmq.a: deps/zeromq2
 	@cd deps/zeromq2 && ./autogen.sh && ./configure $(ZMQ_FLAGS) && make
 
 dependencies: deps/zeromq2/src/.libs/libzmq.a

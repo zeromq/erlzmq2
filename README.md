@@ -28,6 +28,10 @@ Build the code
 
     $ make
 
+If you want to build against a specific version of ZeroMQ (not `master`), use this:
+
+    $ ZEROMQ_VERSION=v<VERSION> make
+
 Build the docs
 
     $ make docs
