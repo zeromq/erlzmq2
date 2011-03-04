@@ -58,7 +58,7 @@
 -opaque ezmq_context() :: binary().
 -opaque ezmq_socket() :: binary().
 
--type ezmq_send_recv_flag() :: noblock | sndmore | {timeout, non_neg_integer()}.
+-type ezmq_send_recv_flag() :: noblock | sndmore | {timeout, timeout()}.
 -type ezmq_send_recv_flags() :: list(ezmq_send_recv_flag).
 
 -type ezmq_sockopt() :: hwm | swap | affinity | identity | subscribe | unsubscribe | rate | recovery_ivl | mcast_loop |

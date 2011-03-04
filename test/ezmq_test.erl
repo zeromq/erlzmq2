@@ -60,6 +60,27 @@ shutdown_stress_loop(N) ->
     ?assertMatch(ok, ezmq:term(C)),
     shutdown_stress_loop(N-1).
 
+shutdown_no_blocking_test() ->
+    {ok, C} = ezmq:context(),
+    {ok, S} = ezmq:socket(C, pub),
+    ezmq:close(S),
+    ?assertEqual(ok, ezmq:term(C, 500)).
+
+shutdown_blocking_test() ->
+    {ok, C} = ezmq:context(),
+    {ok, _S} = ezmq:socket(C, pub),
+    ?assertEqual({error, timeout}, ezmq:term(C, 500)).
+
+shutdown_blocking_unblocking_test() ->
+    {ok, C} = ezmq:context(),
+    {ok, S} = ezmq:socket(C, pub),
+    ?assertEqual({error, timeout}, ezmq:term(C, 500)),
+    ezmq:close(S),
+    receive 
+        {R, ok} when is_reference(R) ->
+            ok
+    end.
+
 join_procs(0) ->
     ok;
 join_procs(N) ->

@@ -22,6 +22,8 @@ typedef struct _ezmq_socket {
   ezmq_context * context;
 } ezmq_socket;
 
+#define EZMQ_TERM 1211981
+
 typedef struct _ezmq_recv {
   ErlNifEnv * env;
   ERL_NIF_TERM ref;
@@ -493,6 +495,9 @@ out:
 void * polling_thread(void * handle)
 {
   ezmq_context * ctx = (ezmq_context *) handle;
+  ErlNifEnv * final_env = enif_alloc_env();
+  ERL_NIF_TERM final_ref;
+  ERL_NIF_TERM final_pid;
 
   struct recvs_head * recvs_queue;
   recvs_queue = malloc(sizeof(struct recvs_head));
@@ -551,7 +556,12 @@ void * polling_thread(void * handle)
       zmq_msg_init(&msg);
       if (!zmq_recv(items[0].socket, &msg, 0)) {
         ezmq_recv * recv = (ezmq_recv *) zmq_msg_data(&msg);
-        if (recv->env == NULL) {
+        if (recv->flags & EZMQ_TERM) {
+
+          final_ref = enif_make_copy(final_env, recv->ref);
+          final_pid = enif_make_pid(final_env, &recv->pid);
+          
+          enif_free_env(recv->env);
           ctx->running = 0;
           goto out;
         }
@@ -573,6 +583,25 @@ out:
   }
   free(recvs_queue);
   zmq_close(ipc_socket);
+
+  zmq_close(ctx->ipc_socket);
+  free(ctx->ipc_socket_name);
+  enif_mutex_destroy(ctx->mutex);
+  enif_cond_destroy(ctx->cond);
+
+  zmq_term(ctx->context);
+
+
+  // signal ezmq:term/2 that the context has been finally terminated
+  ErlNifPid pid;
+  enif_get_local_pid(final_env, final_pid, &pid);
+
+  enif_send(NULL, &pid, final_env,
+            enif_make_tuple2(final_env,
+                             enif_make_copy(final_env, final_ref),
+                             enif_make_atom(final_env, "ok")));
+  enif_free_env(final_env);
+
   return NULL;
 }
 
@@ -602,22 +631,18 @@ NIF(ezmq_nif_term)
 
   zmq_msg_t msg;
   ezmq_recv recv;
-  recv.env = NULL;
+
+  recv.flags = EZMQ_TERM;
+  recv.env = enif_alloc_env();
+  recv.ref = enif_make_ref(recv.env);
+  enif_self(env, &recv.pid);
+
   zmq_msg_init_size(&msg, sizeof(ezmq_recv));
   memcpy(zmq_msg_data(&msg), &recv, sizeof(ezmq_recv));
   zmq_send(ctx->ipc_socket, &msg, ZMQ_NOBLOCK);
   zmq_msg_close(&msg);
-  enif_thread_join(ctx->polling_tid, NULL);
-  zmq_close(ctx->ipc_socket);
-  free(ctx->ipc_socket_name);
-  enif_mutex_destroy(ctx->mutex);
-  enif_cond_destroy(ctx->cond);
 
-  if (-1 == zmq_term(ctx->context)) {
-    return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
-  } else {
-    return enif_make_atom(env, "ok");
-  }
+  return enif_make_copy(env, recv.ref);
 }
 
 static int on_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
