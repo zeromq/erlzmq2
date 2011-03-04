@@ -7,7 +7,7 @@ else
 ZMQ_FLAGS=
 endif
 
-all: compile 
+all: perf
 
 deps/zeromq2/.git/HEAD:
 	@git submodule init
