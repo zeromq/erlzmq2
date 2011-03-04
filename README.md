@@ -21,6 +21,10 @@ It is also available on [Agner](http://erlagner.org/):
 
     $ agner build ezmq
 
+In order to build ezmq against a specific version of ZeroMQ (not `master`), use this:
+
+    $ ZEROMQ_VERSION=v<VERSION> agner build ezmq
+
 Building
 ========
 
