@@ -1,3 +1,4 @@
+%% @hidden
 -module(ezmq_nif).
 
 -export([context/1, socket/2, bind/2, connect/2, send/3, brecv/2, recv/2, setsockopt/3, getsockopt/2, close/1, term/1]).

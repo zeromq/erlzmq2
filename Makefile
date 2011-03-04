@@ -26,3 +26,5 @@ perf: compile
 test: compile
 	@./rebar eunit
 
+docs:
+	@./rebar doc

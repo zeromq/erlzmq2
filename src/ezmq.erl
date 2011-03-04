@@ -1,58 +1,126 @@
 -module(ezmq).
+%% @headerfile "ezmq.hrl"
 -include_lib("ezmq.hrl").
--export([context/0, context/1, socket/2, bind/2, connect/2, send/2, send/3, brecv/1, brecv/2, recv/1, recv/2, setsockopt/3, getsockopt/2, close/1, term/1, term/2]).
+-export([context/0, context/1, socket/2, bind/2, connect/2, send/2, send/3,
+         brecv/1, brecv/2, recv/1, recv/2, setsockopt/3, getsockopt/2,
+         close/1, term/1, term/2]).
 -export_type([ezmq_socket/0, ezmq_context/0]).
 
--spec context() -> ezmq_context().
-
+%% @equiv context(1)
+%% @spec context() -> {ok, ezmq_context()} | ezmq_error()
+-spec context() -> {ok, ezmq_context()} | ezmq_error().
 context() ->
     context(1).
 
--spec context(Threads :: pos_integer()) -> ezmq_context().
-                     
+%% @doc Create a new ezmq context with the specified number of io threads.
+%% <br />
+%% If the context can be created an 'ok' tuple containing an
+%% {@type ezmq_context()} handle to the created context is returned;
+%% if not, it returns an 'error' tuple with an {@type ezmq_type_error()}
+%% describing the error.
+%% <br />
+%% The context must be later cleaned up calling {@link ezmq:term/1. term/1}
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/master:zmq-init">zmq_init</a></i>
+%% @end
+%% @spec context(pos_integer()) -> {ok, ezmq_context()} | ezmq_error()
+-spec context(Threads :: pos_integer()) -> {ok, ezmq_context()} | ezmq_error().
+
 context(Threads) when is_integer(Threads) ->
     ezmq_nif:context(Threads).
 
--spec socket(Context :: ezmq_context(), Type :: ezmq_socket_type()) -> ezmq_socket().
-                    
+
+%% @doc Create a socket.
+%% <br />
+%% This functions creates a socket of the given
+%% {@link ezmq_socket_type(). type} and associates it with the given
+%% {@link ezmq_context(). context}.
+%% <br />
+%% If the socket can be created an 'ok' tuple containing a
+%% {@type ezmq_socket()} handle to the created socket is returned;
+%% if not, it returns an {@type ezmq_error()} describing the error.<br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/master:zmq_socket">zmq_socket</a>.</i>
+%% @end
+%% @spec socket(ezmq_context(), ezmq_socket_type()) -> {ok, ezmq_socket()} | ezmq_error()
+-spec socket(Context :: ezmq_context(), Type :: ezmq_socket_type()) -> {ok, ezmq_socket()} | ezmq_error().
+
 socket(Context, Type) ->
     ezmq_nif:socket(Context, socket_type(Type)).
 
+%% @doc Accept connections on a socket.
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/master:zmq_bind">zmq_bind</a>.</i>
+%% @end
+%% @spec bind(ezmq_socket(), ezmq_endpoint()) -> ok | ezmq_error()
 -spec bind(Socket :: ezmq_socket(), Endpoint :: ezmq_endpoint()) -> ok | ezmq_error().
-                  
+
 bind(Socket, Endpoint) ->
     ezmq_result(ezmq_nif:bind(Socket, Endpoint)).
 
+%% @doc Connect a socket.
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/master:zmq_connect">zmq_connect</a>.</i>
+%% @end
+%% @spec connect(ezmq_socket(), ezmq_endpoint()) -> ok | ezmq_error()
 -spec connect(Socket :: ezmq_socket(), Endpoint :: ezmq_endpoint()) -> ok | ezmq_error().
-                     
+
 connect(Socket, Endpoint) ->
     ezmq_result(ezmq_nif:connect(Socket, Endpoint)).
 
+%% @equiv send(Socket, Msg, 0)
+%% @spec send(ezmq_socket(), ezmq_data()) -> ok | ezmq_error()
 -spec send(Socket :: ezmq_socket(), Data :: ezmq_data()) -> ok | ezmq_error().
-                     
+
 send(Socket, Binary) ->
     ezmq_result(send(Socket, Binary, [])).
 
+%% @doc Send a message on a socket.
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/master:zmq_send">zmq_send</a>.</i>
+%% @end
+%% @spec send(ezma_socket(), ezmq_data(), ezmq_send_recv_flags()) -> ok | ezmq_error()
 -spec send(Socket :: ezmq_socket(), Data :: ezmq_data(), Flags :: ezmq_send_recv_flags()) -> ok | ezmq_error().
 
 send(Socket, Binary, Flags) when is_list(Flags) ->
     ezmq_result(ezmq_nif:send(Socket, Binary, sendrecv_flags(Flags))).
 
+%% @equiv brecv(Socket, 0)
+%% @deprecated
+%% @spec brecv(ezmq_socket()) -> {ok, ezmq_data()} | ezmq_error()
 -spec brecv(Socket :: ezmq_socket()) -> {ok, ezmq_data()} | ezmq_error().
-                   
+
 brecv(Socket) ->
     ezmq_result(brecv(Socket, [])).
 
+%% @doc Receive a message from a socket in a blocking way.
+%% This function can block the current VM thread. <b>DO NOT USE</b>.
+%% @end
+%% @deprecated
+%% @spec brecv(ezmq_socket(), ezmq_send_recv_flags()) -> {ok, ezmq_data()} | ezmq_error()
 -spec brecv(Socket :: ezmq_socket(), Flags :: ezmq_send_recv_flags()) -> {ok, ezmq_data()} | ezmq_error().
 
 brecv(Socket, Flags) when is_list(Flags) ->
    ezmq_result( ezmq_nif:brecv(Socket, sendrecv_flags(Flags))).
 
+
+%% @equiv recv(Socket, 0)
+%% @spec recv(ezmq_socket()) -> {ok, ezmq_data()} | ezmq_error()
 -spec recv(Socket :: ezmq_socket()) -> {ok, ezmq_data()} | ezmq_error().
 
 recv(Socket) ->
     ezmq_result(recv(Socket, [])).
 
+%% @doc Receive a message from a socket.
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/master:zmq_recv">zmq_recv</a>.</i>
+%% @end
+%% @spec recv(ezmq_socket(), ezmq_send_recv_flags()) -> {ok, ezmq_data()} | ezmq_error()
 -spec recv(Socket :: ezmq_socket(), Flags :: ezmq_send_recv_flags()) -> {ok, ezmq_data()} | ezmq_error().
 
 recv(Socket, Flags) when is_list(Flags) ->
@@ -69,26 +137,57 @@ recv(Socket, Flags) when is_list(Flags) ->
             ezmq_result(Result)
     end.
 
+%% @doc Set an {@link ezmq_sockopt(). option} associated with a socket.
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/master:zmq_setsockopt">zmq_setsockopt</a>.</i>
+%% @end
+%% @spec setsockopt(ezmq_socket(), ezmq_sockopt(), ezmq_sockopt_value()) -> ok | ezmq_error()
 -spec setsockopt(Socket :: ezmq_socket(), Name :: ezmq_sockopt(), ezmq_sockopt_value()) -> ok | ezmq_error().
-                        
+
 setsockopt(Socket, Name, Value) ->
     ezmq_result(ezmq_nif:setsockopt(Socket, option_name(Name), Value)).
 
+%% @doc Get an {@link ezmq_sockopt(). option} associated with a socket.
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/master:zmq_getsockopt">zmq_getsockopt</a>.</i>
+%% @end
+%% @spec getsockopt(ezmq_socket(), ezmq_sockopt()) -> {ok, ezmq_sockopt_value()} | ezmq_error()
 -spec getsockopt(Socket :: ezmq_socket(), Name :: ezmq_sockopt()) -> {ok, ezmq_sockopt_value()} | ezmq_error().
-                        
+
 getsockopt(Socket, Name) ->
     ezmq_result(ezmq_nif:getsockopt(Socket, option_name(Name))).
 
+
+%% @doc Close the given socket.
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/master:zmq_close">zmq_close</a>.</i>
+%% @end
+%% @spec close(ezmq_socket()) -> ok | ezmq_error()
 -spec close(Socket :: ezmq_socket()) -> ok | ezmq_error().
-                   
+
 close(Socket) ->
     ezmq_result(ezmq_nif:close(Socket)).
 
+%% @equiv term(Context, infinity)
+%% @spec term(ezmq_context()) -> ok | ezmq_error()
 -spec term(Context :: ezmq_context()) -> ok | ezmq_error().
 
 term(Context) ->
     term(Context, infinity).
-    
+
+
+%% @doc Terminate the given context waiting up to Timeout ms.
+%% <br />
+%% This function should be called after all sockets associated with
+%% the given context have been closed.<br />
+%% If not it will block the given Timeout amount of time.
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/master:zmq_term">zmq_term</a>.</i>
+%% @end
+%% @spec term(ezmq_context(), timeout()) -> ok | ezmq_error()
 -spec term(Context :: ezmq_context(), Timeout :: timeout()) -> ok | ezmq_error().
 
 term(Context, Timeout) ->
@@ -108,7 +207,7 @@ term(Context, Timeout) ->
 %% Private
 
 -spec socket_type(Type :: ezmq_socket_type()) -> integer().
-                         
+
 socket_type(pair) ->
     ?'ZMQ_PAIR';
 socket_type(pub) ->
@@ -144,7 +243,7 @@ sendrecv_flags([sndmore|Rest]) ->
     ?'ZMQ_SNDMORE' bor sendrecv_flags(Rest).
 
 -spec option_name(Name :: ezmq_sockopt()) -> integer().
-                         
+
 option_name(hwm) ->
     ?'ZMQ_HWM';
 option_name(swap) ->

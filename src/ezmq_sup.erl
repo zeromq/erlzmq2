@@ -1,4 +1,4 @@
-
+%% @hidden
 -module(ezmq_sup).
 
 -behaviour(supervisor).

@@ -1,3 +1,4 @@
+%% @hidden
 -module(ezmq_app).
 
 -behaviour(application).
