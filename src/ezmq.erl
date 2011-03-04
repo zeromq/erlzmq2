@@ -90,7 +90,6 @@ send(Socket, Binary, Flags) when is_list(Flags) ->
     ezmq_result(ezmq_nif:send(Socket, Binary, sendrecv_flags(Flags))).
 
 %% @equiv brecv(Socket, 0)
-%% @deprecated
 %% @spec brecv(ezmq_socket()) -> {ok, ezmq_data()} | ezmq_error()
 -spec brecv(Socket :: ezmq_socket()) -> {ok, ezmq_data()} | ezmq_error().
 
@@ -98,9 +97,8 @@ brecv(Socket) ->
     ezmq_result(brecv(Socket, [])).
 
 %% @doc Receive a message from a socket in a blocking way.
-%% This function can block the current VM thread. <b>DO NOT USE</b>.
+%% This function can block the current VM scheduler. <b>DO NOT USE IT UNLESS YOU REALLY KNOW WHAT YOU ARE DOING</b>.
 %% @end
-%% @deprecated
 %% @spec brecv(ezmq_socket(), ezmq_send_recv_flags()) -> {ok, ezmq_data()} | ezmq_error()
 -spec brecv(Socket :: ezmq_socket(), Flags :: ezmq_send_recv_flags()) -> {ok, ezmq_data()} | ezmq_error().
 
