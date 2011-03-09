@@ -1,0 +1,247 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Module erlzmq</title>
+<link rel="stylesheet" type="text/css" href="stylesheet.css" title="EDoc">
+</head>
+<body bgcolor="white">
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module erlzmq</h1>
+<ul class="index"><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>
+
+
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-erlzmq_context">erlzmq_context()</a></h3>
+<p><tt>erlzmq_context() = binary()</tt></p>
+<p>An opaque handle to an erlzmq context.</p>
+
+<h3 class="typedecl"><a name="type-erlzmq_data">erlzmq_data()</a></h3>
+<p><tt>erlzmq_data() = <a href="#type-iolist">iolist()</a></tt></p>
+<p>Data to be sent with <a href="erlzmq.html#send-3">send/3</a> or received with
+  <a href="erlzmq.html#recv-2">recv/2</a></p>
+
+<h3 class="typedecl"><a name="type-erlzmq_endpoint">erlzmq_endpoint()</a></h3>
+<p><tt>erlzmq_endpoint() = string()</tt></p>
+<p>The endpoint argument is a string consisting of two parts:
+  <b>transport://address</b><br>
+  The following transports are defined:
+  <b>inproc</b>, <b>ipc</b>, <b>tcp</b>, <b>pgm</b>, <b>epgm</b>.<br>
+  The meaning of address is transport specific.<br>
+  <i>For more information see
+  <a href="http://api.zeromq.org/master:zmq_bind">zmq_bind</a> or
+  <a href="http://api.zeromq.org/master:zmq_connect">zmq_connect</a></i></p>
+
+<h3 class="typedecl"><a name="type-erlzmq_error">erlzmq_error()</a></h3>
+<p><tt>erlzmq_error() = {error, <a href="#type-erlzmq_error_type">erlzmq_error_type()</a>}</tt></p>
+<p>Error tuples returned by most API functions.</p>
+
+<h3 class="typedecl"><a name="type-erlzmq_error_type">erlzmq_error_type()</a></h3>
+<p><tt>erlzmq_error_type() = enotsup | eprotonosupport | enobufs | enetdown | eaddrinuse | eaddnotavail | econnrefused | einprogress | efsm | enocompatproto | eterm | emthread | <a href="#type-errno">errno()</a> | {unknown, integer()}</tt></p>
+<p>Possible error types.</p>
+
+<h3 class="typedecl"><a name="type-erlzmq_send_recv_flag">erlzmq_send_recv_flag()</a></h3>
+<p><tt>erlzmq_send_recv_flag() = noblock | sndmore | recvmore | {timeout, <a href="#type-timeout">timeout()</a>}</tt></p>
+<p>The individual flags to use with <a href="erlzmq.html#send-3">send/3</a>
+  and <a href="erlzmq.html#recv-2">recv/2</a>.<br>
+  <i>For more information see
+  <a href="http://api.zeromq.org/master:zmq_send">zmq_send</a> or
+  <a href="http://api.zeromq.org/master:zmq_recv">zmq_recv</a></i></p>
+
+<h3 class="typedecl"><a name="type-erlzmq_send_recv_flags">erlzmq_send_recv_flags()</a></h3>
+<p><tt>erlzmq_send_recv_flags() = list(<a href="#type-erlzmq_send_recv_flag">erlzmq_send_recv_flag()</a>)</tt></p>
+<p>A list of flags to use with <a href="ezqm.html#send-3">send/3</a> and
+  <a href="erlzmq.html#recv-2">recv/2</a></p>
+
+<h3 class="typedecl"><a name="type-erlzmq_socket">erlzmq_socket()</a></h3>
+<p><tt>erlzmq_socket() = binary()</tt></p>
+<p>An opaque handle to an erlzmq socket.</p>
+
+<h3 class="typedecl"><a name="type-erlzmq_socket_type">erlzmq_socket_type()</a></h3>
+<p><tt>erlzmq_socket_type() = pair | pub | sub | req | rep | xreq | xrep | pull | push | xpub | xsub</tt></p>
+<p>Possible types for an erlzmq socket.<br>
+  <i>For more information see
+  <a href="http://api.zeromq.org/master:zmq_socket">zmq_socket</a></i></p>
+
+<h3 class="typedecl"><a name="type-erlzmq_sockopt">erlzmq_sockopt()</a></h3>
+<p><tt>erlzmq_sockopt() = hwm | swap | affinity | identity | subscribe | unsubscribe | rate | recovery_ivl | mcast_loop | sndbuf | rcvbuf | rcvmore | fd | events | linger | reconnect_ivl | backlog | recovery_ivl_msec | reconnect_ivl_max</tt></p>
+<p>Available options for <a href="erlzmq.html#setsockopt-3">setsockopt/3</a>
+  and <a href="erlzmq.html#getsockopt-2">getsockopt/2</a>.<br>
+  <i>For more information see
+  <a href="http://api.zeromq.org/master:zmq_setsockopt">zmq_setsockopt</a>
+  and <a href="http://api.zeromq.org/master:zmq_getsockopt">zmq_getsockopt</a></i></p>
+
+<h3 class="typedecl"><a name="type-erlzmq_sockopt_value">erlzmq_sockopt_value()</a></h3>
+<p><tt>erlzmq_sockopt_value() = integer() | <a href="#type-iolist">iolist()</a></tt></p>
+<p>Possible option values for <a href="erlzmq.html#setsockopt-3">setsockopt/3</a>.</p>
+
+<h3 class="typedecl"><a name="type-errno">errno()</a></h3>
+<p><tt>errno() = eperm | enoent | srch | eintr | eio | enxio | ebad | echild | edeadlk | enomem | eacces | efault | enotblk | ebusy | eexist | exdev | enodev | enotdir | eisdir | einval | enfile | emfile | enotty | etxtbsy | efbig | enospc | espipe | erofs | emlink | epipe | eagain | einprogress | ealready | enotsock | edestaddrreq | emsgsize | eprototype | enoprotoopt | eprotonosupport | esocktnosupport | enotsup | epfnosupport | eafnosupport | eaddrinuse | eaddrnotavail | enetdown | enetunreach | enetreset | econnaborted | econnreset | enobufs | eisconn | enotconn | eshutdown | etoomanyrefs | etimedout | econnrefused | eloop | enametoolong</tt></p>
+<p>Standard error atoms.</p>
+
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#bind-2">bind/2</a></td><td>Accept connections on a socket.</td></tr>
+<tr><td valign="top"><a href="#brecv-1">brecv/1</a></td><td>Equivalent to <a href="#brecv-2"><tt>brecv(Socket, 0)</tt></a>.
+</td></tr>
+<tr><td valign="top"><a href="#brecv-2">brecv/2</a></td><td>Receive a message from a socket in a blocking way.</td></tr>
+<tr><td valign="top"><a href="#close-1">close/1</a></td><td>Close the given socket.</td></tr>
+<tr><td valign="top"><a href="#connect-2">connect/2</a></td><td>Connect a socket.</td></tr>
+<tr><td valign="top"><a href="#context-0">context/0</a></td><td>Equivalent to <a href="#context-1"><tt>context(1)</tt></a>.
+</td></tr>
+<tr><td valign="top"><a href="#context-1">context/1</a></td><td>Create a new erlzmq context with the specified number of io threads.</td></tr>
+<tr><td valign="top"><a href="#getsockopt-2">getsockopt/2</a></td><td>Get an <a href="#type-erlzmq_sockopt">option</a> associated with a socket.</td></tr>
+<tr><td valign="top"><a href="#recv-1">recv/1</a></td><td>Equivalent to <a href="#recv-2"><tt>recv(Socket, 0)</tt></a>.
+</td></tr>
+<tr><td valign="top"><a href="#recv-2">recv/2</a></td><td>Receive a message from a socket.</td></tr>
+<tr><td valign="top"><a href="#send-2">send/2</a></td><td>Equivalent to <a href="#send-3"><tt>send(Socket, Msg, [])</tt></a>.
+</td></tr>
+<tr><td valign="top"><a href="#send-3">send/3</a></td><td>Send a message on a socket.</td></tr>
+<tr><td valign="top"><a href="#setsockopt-3">setsockopt/3</a></td><td>Set an <a href="#type-erlzmq_sockopt">option</a> associated with a socket.</td></tr>
+<tr><td valign="top"><a href="#socket-2">socket/2</a></td><td>Create a socket.</td></tr>
+<tr><td valign="top"><a href="#term-1">term/1</a></td><td>Equivalent to <a href="#term-2"><tt>term(Context, infinity)</tt></a>.
+</td></tr>
+<tr><td valign="top"><a href="#term-2">term/2</a></td><td>Terminate the given context waiting up to Timeout ms.</td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="bind-2">bind/2</a></h3>
+<div class="spec">
+<p><tt>bind(Socket::<a href="#type-erlzmq_socket">erlzmq_socket()</a>, Endpoint::<a href="#type-erlzmq_endpoint">erlzmq_endpoint()</a>) -&gt; ok | <a href="#type-erlzmq_error">erlzmq_error()</a></tt></p>
+</div><p>Accept connections on a socket.
+  <br>
+  <i>For more information see
+  <a href="http://api.zeromq.org/master:zmq_bind">zmq_bind</a>.</i></p>
+
+<h3 class="function"><a name="brecv-1">brecv/1</a></h3>
+<div class="spec">
+<p><tt>brecv(Socket::<a href="#type-erlzmq_socket">erlzmq_socket()</a>) -&gt; {ok, <a href="#type-erlzmq_data">erlzmq_data()</a>} | <a href="#type-erlzmq_error">erlzmq_error()</a></tt></p>
+</div><p>Equivalent to <a href="#brecv-2"><tt>brecv(Socket, 0)</tt></a>.</p>
+
+
+<h3 class="function"><a name="brecv-2">brecv/2</a></h3>
+<div class="spec">
+<p><tt>brecv(Socket::<a href="#type-erlzmq_socket">erlzmq_socket()</a>, Flags::<a href="#type-erlzmq_send_recv_flags">erlzmq_send_recv_flags()</a>) -&gt; {ok, <a href="#type-erlzmq_data">erlzmq_data()</a>} | <a href="#type-erlzmq_error">erlzmq_error()</a></tt></p>
+</div><p>Receive a message from a socket in a blocking way.
+  This function can block the current VM scheduler. <b>DO NOT USE IT UNLESS YOU REALLY KNOW WHAT YOU ARE DOING</b>.</p>
+
+<h3 class="function"><a name="close-1">close/1</a></h3>
+<div class="spec">
+<p><tt>close(Socket::<a href="#type-erlzmq_socket">erlzmq_socket()</a>) -&gt; ok | <a href="#type-erlzmq_error">erlzmq_error()</a></tt></p>
+</div><p>Close the given socket.
+  <br>
+  <i>For more information see
+  <a href="http://api.zeromq.org/master:zmq_close">zmq_close</a>.</i></p>
+
+<h3 class="function"><a name="connect-2">connect/2</a></h3>
+<div class="spec">
+<p><tt>connect(Socket::<a href="#type-erlzmq_socket">erlzmq_socket()</a>, Endpoint::<a href="#type-erlzmq_endpoint">erlzmq_endpoint()</a>) -&gt; ok | <a href="#type-erlzmq_error">erlzmq_error()</a></tt></p>
+</div><p>Connect a socket.
+  <br>
+  <i>For more information see
+  <a href="http://api.zeromq.org/master:zmq_connect">zmq_connect</a>.</i></p>
+
+<h3 class="function"><a name="context-0">context/0</a></h3>
+<div class="spec">
+<p><tt>context() -&gt; {ok, <a href="#type-erlzmq_context">erlzmq_context()</a>} | <a href="#type-erlzmq_error">erlzmq_error()</a></tt></p>
+</div><p>Equivalent to <a href="#context-1"><tt>context(1)</tt></a>.</p>
+
+
+<h3 class="function"><a name="context-1">context/1</a></h3>
+<div class="spec">
+<p><tt>context(Threads::<a href="#type-pos_integer">pos_integer()</a>) -&gt; {ok, <a href="#type-erlzmq_context">erlzmq_context()</a>} | <a href="#type-erlzmq_error">erlzmq_error()</a></tt></p>
+</div><p>Create a new erlzmq context with the specified number of io threads.
+  <br>
+  If the context can be created an 'ok' tuple containing an
+  <code><a href="#type-erlzmq_context">erlzmq_context()</a></code> handle to the created context is returned;
+  if not, it returns an 'error' tuple with an <code><a href="#type-erlzmq_type_error">erlzmq_type_error()</a></code>
+  describing the error.
+  <br>
+  The context must be later cleaned up calling <a href="erlzmq.html#term-1">term/1</a>
+  <br>
+  <i>For more information see
+  <a href="http://api.zeromq.org/master:zmq-init">zmq_init</a></i></p>
+
+<h3 class="function"><a name="getsockopt-2">getsockopt/2</a></h3>
+<div class="spec">
+<p><tt>getsockopt(Socket::<a href="#type-erlzmq_socket">erlzmq_socket()</a>, Name::<a href="#type-erlzmq_sockopt">erlzmq_sockopt()</a>) -&gt; {ok, <a href="#type-erlzmq_sockopt_value">erlzmq_sockopt_value()</a>} | <a href="#type-erlzmq_error">erlzmq_error()</a></tt></p>
+</div><p>Get an <a href="#type-erlzmq_sockopt">option</a> associated with a socket.
+  <br>
+  <i>For more information see
+  <a href="http://api.zeromq.org/master:zmq_getsockopt">zmq_getsockopt</a>.</i></p>
+
+<h3 class="function"><a name="recv-1">recv/1</a></h3>
+<div class="spec">
+<p><tt>recv(Socket::<a href="#type-erlzmq_socket">erlzmq_socket()</a>) -&gt; {ok, <a href="#type-erlzmq_data">erlzmq_data()</a>} | <a href="#type-erlzmq_error">erlzmq_error()</a></tt></p>
+</div><p>Equivalent to <a href="#recv-2"><tt>recv(Socket, 0)</tt></a>.</p>
+
+
+<h3 class="function"><a name="recv-2">recv/2</a></h3>
+<div class="spec">
+<p><tt>recv(Socket::<a href="#type-erlzmq_socket">erlzmq_socket()</a>, Flags::<a href="#type-erlzmq_send_recv_flags">erlzmq_send_recv_flags()</a>) -&gt; {ok, <a href="#type-erlzmq_data">erlzmq_data()</a>} | <a href="#type-erlzmq_error">erlzmq_error()</a></tt></p>
+</div><p>Receive a message from a socket.
+  <br>
+  <i>For more information see
+  <a href="http://api.zeromq.org/master:zmq_recv">zmq_recv</a>.</i></p>
+
+<h3 class="function"><a name="send-2">send/2</a></h3>
+<div class="spec">
+<p><tt>send(Socket::<a href="#type-erlzmq_socket">erlzmq_socket()</a>, Binary::<a href="#type-erlzmq_data">erlzmq_data()</a>) -&gt; ok | <a href="#type-erlzmq_error">erlzmq_error()</a></tt></p>
+</div><p>Equivalent to <a href="#send-3"><tt>send(Socket, Msg, [])</tt></a>.</p>
+
+
+<h3 class="function"><a name="send-3">send/3</a></h3>
+<div class="spec">
+<p><tt>send(Socket::<a href="#type-ezma_socket">ezma_socket()</a>, Binary::<a href="#type-erlzmq_data">erlzmq_data()</a>, Flags::<a href="#type-erlzmq_send_recv_flags">erlzmq_send_recv_flags()</a>) -&gt; ok | <a href="#type-erlzmq_error">erlzmq_error()</a></tt></p>
+</div><p>Send a message on a socket.
+  <br>
+  <i>For more information see
+  <a href="http://api.zeromq.org/master:zmq_send">zmq_send</a>.</i></p>
+
+<h3 class="function"><a name="setsockopt-3">setsockopt/3</a></h3>
+<div class="spec">
+<p><tt>setsockopt(Socket::<a href="#type-erlzmq_socket">erlzmq_socket()</a>, Name::<a href="#type-erlzmq_sockopt">erlzmq_sockopt()</a>, Value::<a href="#type-erlzmq_sockopt_value">erlzmq_sockopt_value()</a>) -&gt; ok | <a href="#type-erlzmq_error">erlzmq_error()</a></tt></p>
+</div><p>Set an <a href="#type-erlzmq_sockopt">option</a> associated with a socket.
+  <br>
+  <i>For more information see
+  <a href="http://api.zeromq.org/master:zmq_setsockopt">zmq_setsockopt</a>.</i></p>
+
+<h3 class="function"><a name="socket-2">socket/2</a></h3>
+<div class="spec">
+<p><tt>socket(Context::<a href="#type-erlzmq_context">erlzmq_context()</a>, Type::<a href="#type-erlzmq_socket_type">erlzmq_socket_type()</a>) -&gt; {ok, <a href="#type-erlzmq_socket">erlzmq_socket()</a>} | <a href="#type-erlzmq_error">erlzmq_error()</a></tt></p>
+</div><p>Create a socket.
+  <br>
+  This functions creates a socket of the given
+  <a href="#type-erlzmq_socket_type">type</a> and associates it with the given
+  <a href="#type-erlzmq_context">context</a>.
+  <br>
+  If the socket can be created an 'ok' tuple containing a
+  <code><a href="#type-erlzmq_socket">erlzmq_socket()</a></code> handle to the created socket is returned;
+  if not, it returns an <code><a href="#type-erlzmq_error">erlzmq_error()</a></code> describing the error.<br>
+  <i>For more information see
+  <a href="http://api.zeromq.org/master:zmq_socket">zmq_socket</a>.</i></p>
+
+<h3 class="function"><a name="term-1">term/1</a></h3>
+<div class="spec">
+<p><tt>term(Context::<a href="#type-erlzmq_context">erlzmq_context()</a>) -&gt; ok | <a href="#type-erlzmq_error">erlzmq_error()</a></tt></p>
+</div><p>Equivalent to <a href="#term-2"><tt>term(Context, infinity)</tt></a>.</p>
+
+
+<h3 class="function"><a name="term-2">term/2</a></h3>
+<div class="spec">
+<p><tt>term(Context::<a href="#type-erlzmq_context">erlzmq_context()</a>, Timeout::<a href="#type-timeout">timeout()</a>) -&gt; ok | <a href="#type-erlzmq_error">erlzmq_error()</a></tt></p>
+</div><p>Terminate the given context waiting up to Timeout ms.
+  <br>
+  This function should be called after all sockets associated with
+  the given context have been closed.<br>
+  If not it will block the given Timeout amount of time.
+  <i>For more information see
+  <a href="http://api.zeromq.org/master:zmq_term">zmq_term</a>.</i></p>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc, Mar 9 2011, 06:38:23.</i></p>
+</body>
+</html>
