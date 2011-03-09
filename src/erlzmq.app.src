@@ -1,12 +1,12 @@
-{application, ezmq,
+{application, erlzmq,
  [
   {description, ""},
-  {vsn, "1"},
+  {vsn, "2.0"},
   {registered, []},
   {applications, [
                   kernel,
                   stdlib
                  ]},
-  {mod, { ezmq_app, []}},
+  {mod, { erlzmq_app, []}},
   {env, []}
  ]}.

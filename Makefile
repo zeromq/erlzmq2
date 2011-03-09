@@ -27,7 +27,7 @@ compile: dependencies
 	@./rebar compile
 
 perf: compile
-	@cd perf && erlc ezmq_perf.erl
+	@cd perf && erlc erlzmq_perf.erl
 
 test: compile
 	@./rebar eunit

@@ -1,4 +1,4 @@
-ezmq
+erlzmq2
 ====
 NIF based Erlang bindings for the ZeroMQ messaging library.
 
@@ -7,23 +7,23 @@ Copyright (c) 2011 Yurii Rashkovskii and Evax Sofware
 Overview
 ========
 
-The ezmq application provides high-performance NIF based Erlang bindings
+The erlzmq2 application provides high-performance NIF based Erlang bindings
 for the ZeroMQ messaging library.
 
 Downloading
 ===========
 
-The ezmq source code can be found on [GitHub](https://github.com/yrashk/ezmq)
+The erlzmq2 source code can be found on [GitHub](https://github.com/yrashk/erlzmq2)
 
-    $ git clone http://github.com/yrashk/ezmq.git
+    $ git clone http://github.com/yrashk/erlzmq2.git
 
 It is also available on [Agner](http://erlagner.org/):
 
-    $ agner build ezmq
+    $ agner build erlzmq
 
-In order to build ezmq against a specific version of ZeroMQ (not `master`), use this:
+In order to build erlzmq2 against a specific version of ZeroMQ (not `master`), use this:
 
-    $ ZEROMQ_VERSION=v<VERSION> agner build ezmq
+    $ ZEROMQ_VERSION=v<VERSION> agner build erlzmq
 
 Building
 ========

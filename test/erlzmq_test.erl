@@ -1,30 +1,30 @@
--module(ezmq_test).
+-module(erlzmq_test).
 -include_lib("eunit/include/eunit.hrl").
 -export([worker/2]).
 
 hwm_test() ->
-    {ok, C} = ezmq:context(),
-    {ok, S1} = ezmq:socket(C, pull),
-    {ok, S2} = ezmq:socket(C, push),
+    {ok, C} = erlzmq:context(),
+    {ok, S1} = erlzmq:socket(C, pull),
+    {ok, S2} = erlzmq:socket(C, push),
 
-    ok = ezmq:setsockopt(S2, linger, 0),
-    ok = ezmq:setsockopt(S2, hwm, 5),
+    ok = erlzmq:setsockopt(S2, linger, 0),
+    ok = erlzmq:setsockopt(S2, hwm, 5),
 
-    ok = ezmq:bind(S1, "tcp://127.0.0.1:5858"),
-    ok = ezmq:connect(S2, "tcp://127.0.0.1:5858"),
+    ok = erlzmq:bind(S1, "tcp://127.0.0.1:5858"),
+    ok = erlzmq:connect(S2, "tcp://127.0.0.1:5858"),
 
     ok = hwm_loop(10, S2),
 
-    ?assertMatch({ok, <<"test">>}, ezmq:recv(S1)),
-    ?assertMatch(ok, ezmq:send(S2, <<"test">>)).
+    ?assertMatch({ok, <<"test">>}, erlzmq:recv(S1)),
+    ?assertMatch(ok, erlzmq:send(S2, <<"test">>)).
 
 hwm_loop(0, _S) ->
     ok;
 hwm_loop(N, S) when N > 5 ->
-    ?assertMatch(ok, ezmq:send(S, <<"test">>, [noblock])),
+    ?assertMatch(ok, erlzmq:send(S, <<"test">>, [noblock])),
     hwm_loop(N-1, S);
 hwm_loop(N, S) ->
-    ?assertMatch({error, _} ,ezmq:send(S, <<"test">>, [noblock])),
+    ?assertMatch({error, _} ,erlzmq:send(S, <<"test">>, [noblock])),
     hwm_loop(N-1, S).
 
 
@@ -52,32 +52,32 @@ shutdown_stress_test() ->
 shutdown_stress_loop(0) ->
     ok;
 shutdown_stress_loop(N) ->
-    {ok, C} = ezmq:context(7),
-    {ok, S1} = ezmq:socket(C, rep),
+    {ok, C} = erlzmq:context(7),
+    {ok, S1} = erlzmq:socket(C, rep),
     ?assertMatch(ok, shutdown_stress_worker_loop(100, C)),
     ?assertMatch(ok, join_procs(100)),
-    ?assertMatch(ok, ezmq:close(S1)),
-    ?assertMatch(ok, ezmq:term(C)),
+    ?assertMatch(ok, erlzmq:close(S1)),
+    ?assertMatch(ok, erlzmq:term(C)),
     shutdown_stress_loop(N-1).
 
 shutdown_no_blocking_test() ->
-    {ok, C} = ezmq:context(),
-    {ok, S} = ezmq:socket(C, pub),
-    ezmq:close(S),
-    ?assertEqual(ok, ezmq:term(C, 500)).
+    {ok, C} = erlzmq:context(),
+    {ok, S} = erlzmq:socket(C, pub),
+    erlzmq:close(S),
+    ?assertEqual(ok, erlzmq:term(C, 500)).
 
 shutdown_blocking_test() ->
-    {ok, C} = ezmq:context(),
-    {ok, _S} = ezmq:socket(C, pub),
-    ?assertMatch({error, timeout, _}, ezmq:term(C, 500)).
+    {ok, C} = erlzmq:context(),
+    {ok, _S} = erlzmq:socket(C, pub),
+    ?assertMatch({error, timeout, _}, erlzmq:term(C, 500)).
 
 shutdown_blocking_unblocking_test() ->
-    {ok, C} = ezmq:context(),
-    {ok, S} = ezmq:socket(C, pub),
-    V = ezmq:term(C, 500),
+    {ok, C} = erlzmq:context(),
+    {ok, S} = erlzmq:socket(C, pub),
+    V = erlzmq:term(C, 500),
     ?assertMatch({error, timeout, _}, V),
     {error, timeout, Ref} = V,
-    ezmq:close(S),
+    erlzmq:close(S),
     receive 
         {Ref, ok} ->
             ok
@@ -94,29 +94,29 @@ join_procs(N) ->
 shutdown_stress_worker_loop(0, _) ->
     ok;
 shutdown_stress_worker_loop(N, C) ->
-    {ok, S2} = ezmq:socket(C, sub),
+    {ok, S2} = erlzmq:socket(C, sub),
     spawn(?MODULE, worker, [self(), S2]),
     shutdown_stress_worker_loop(N-1, C).
 
 worker(Pid, S) ->
-    ?assertMatch(ok, ezmq:connect(S, "tcp://127.0.0.1:5557")),
-    ?assertMatch(ok, ezmq:close(S)),
+    ?assertMatch(ok, erlzmq:connect(S, "tcp://127.0.0.1:5557")),
+    ?assertMatch(ok, erlzmq:close(S)),
     Pid ! proc_end.
 
 create_bound_pair(Ctx, Type1, Type2, Transport) ->
-    {ok, S1} = ezmq:socket(Ctx, Type1),
-    {ok, S2} = ezmq:socket(Ctx, Type2),
-    ok = ezmq:bind(S1, Transport),
-    ok = ezmq:connect(S2, Transport),
+    {ok, S1} = erlzmq:socket(Ctx, Type1),
+    {ok, S2} = erlzmq:socket(Ctx, Type2),
+    ok = erlzmq:bind(S1, Transport),
+    ok = erlzmq:connect(S2, Transport),
     {S1, S2}.
 
 ping_pong({S1, S2}, Msg) ->
-    ok = ezmq:send(S1, Msg),
-    ?assertMatch({ok, Msg}, ezmq:recv(S2)),
-    ok = ezmq:send(S2, Msg).
+    ok = erlzmq:send(S1, Msg),
+    ?assertMatch({ok, Msg}, erlzmq:recv(S2)),
+    ok = erlzmq:send(S2, Msg).
 
 basic_tests(Transport, Type1, Type2) ->
-    {ok, C} = ezmq:context(1),
+    {ok, C} = erlzmq:context(1),
     {S1, S2} = create_bound_pair(C, Type1, Type2, Transport),
     ping_pong({S1, S2}, <<"XXX">>).
 

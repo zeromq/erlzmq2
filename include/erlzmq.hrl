@@ -38,15 +38,15 @@
 
 %% Types
 
-%% @type ezmq_socket_type() = pair | pub | sub | req | rep | xreq | xrep |
+%% @type erlzmq_socket_type() = pair | pub | sub | req | rep | xreq | xrep |
 %% pull | push | xpub | xsub.
-%% Possible types for an ezmq socket.<br />
+%% Possible types for an erlzmq socket.<br />
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_socket">zmq_socket</a></i>
--type ezmq_socket_type() :: pair | pub | sub | req | rep | xreq | xrep |
+-type erlzmq_socket_type() :: pair | pub | sub | req | rep | xreq | xrep |
                             pull | push | xpub | xsub.
 
-%% @type ezmq_endpoint() = string().
+%% @type erlzmq_endpoint() = string().
 %% The endpoint argument is a string consisting of two parts:
 %% <b>transport://address</b><br />
 %% The following transports are defined:
@@ -55,7 +55,7 @@
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_bind">zmq_bind</a> or
 %% <a href="http://api.zeromq.org/master:zmq_connect">zmq_connect</a></i>
--type ezmq_endpoint() :: string().
+-type erlzmq_endpoint() :: string().
 
 %% @type errno() = eperm | enoent | srch | eintr | eio | enxio | ebad |
 %% echild | edeadlk | enomem | eacces | efault | enotblk | ebusy | eexist |
@@ -81,62 +81,62 @@
                  enotconn | eshutdown | etoomanyrefs |
                  etimedout | econnrefused | eloop | enametoolong.
 
-%% @type ezmq_error_type() = enotsup | eprotonosupport | enobufs |
+%% @type erlzmq_error_type() = enotsup | eprotonosupport | enobufs |
 %% enetdown | eaddrinuse | eaddnotavail | econnrefused | einprogress |
 %% efsm | enocompatproto | eterm | emthread | errno() |
 %% {unknown, integer()}.
 %% Possible error types.
--type ezmq_error_type() :: enotsup | eprotonosupport | enobufs | enetdown |
+-type erlzmq_error_type() :: enotsup | eprotonosupport | enobufs | enetdown |
                            eaddrinuse | eaddnotavail | econnrefused | 
                            einprogress | efsm | enocompatproto | eterm |
                            emthread | errno() | {unknown, integer()}.
 
-%% @type ezmq_error() = {error, ezmq_error_type()}.
+%% @type erlzmq_error() = {error, erlzmq_error_type()}.
 %% Error tuples returned by most API functions.
--type ezmq_error() :: {error, ezmq_error_type()}.
+-type erlzmq_error() :: {error, erlzmq_error_type()}.
 
-%% @type ezmq_data() = iolist().
-%% Data to be sent with {@link ezmq:send/3. send/3} or received with
-%% {@link ezmq:recv/2. recv/2}
--type ezmq_data() :: iolist().
+%% @type erlzmq_data() = iolist().
+%% Data to be sent with {@link erlzmq:send/3. send/3} or received with
+%% {@link erlzmq:recv/2. recv/2}
+-type erlzmq_data() :: iolist().
 
-%% @type ezmq_context() = binary().
-%% An opaque handle to an ezmq context.
--opaque ezmq_context() :: binary().
+%% @type erlzmq_context() = binary().
+%% An opaque handle to an erlzmq context.
+-opaque erlzmq_context() :: binary().
 
-%% @type ezmq_socket() = binary().
-%% An opaque handle to an ezmq socket.
--opaque ezmq_socket() :: binary().
+%% @type erlzmq_socket() = binary().
+%% An opaque handle to an erlzmq socket.
+-opaque erlzmq_socket() :: binary().
 
-%% @type ezmq_send_recv_flag() = noblock | sndmore | recvmore | {timeout, timeout()}.
-%% The individual flags to use with {@link ezmq:send/3. send/3}
-%% and {@link ezmq:recv/2. recv/2}.<br />
+%% @type erlzmq_send_recv_flag() = noblock | sndmore | recvmore | {timeout, timeout()}.
+%% The individual flags to use with {@link erlzmq:send/3. send/3}
+%% and {@link erlzmq:recv/2. recv/2}.<br />
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_send">zmq_send</a> or
 %% <a href="http://api.zeromq.org/master:zmq_recv">zmq_recv</a></i>
--type ezmq_send_recv_flag() :: noblock | sndmore | recvmore | {timeout, timeout()}.
+-type erlzmq_send_recv_flag() :: noblock | sndmore | recvmore | {timeout, timeout()}.
 
-%% @type ezmq_send_recv_flags() = list(ezmq_send_recv_flag()).
+%% @type erlzmq_send_recv_flags() = list(erlzmq_send_recv_flag()).
 %% A list of flags to use with {@link ezqm:send/3. send/3} and
-%% {@link ezmq:recv/2. recv/2}
--type ezmq_send_recv_flags() :: list(ezmq_send_recv_flag()).
+%% {@link erlzmq:recv/2. recv/2}
+-type erlzmq_send_recv_flags() :: list(erlzmq_send_recv_flag()).
 
-%% @type ezmq_sockopt() = hwm | swap | affinity | identity | subscribe |
+%% @type erlzmq_sockopt() = hwm | swap | affinity | identity | subscribe |
 %% unsubscribe | rate | recovery_ivl | mcast_loop | sndbuf | rcvbuf |
 %% rcvmore | fd | events | linger | reconnect_ivl | backlog |
 %% recovery_ivl_msec | reconnect_ivl_max.
-%% Available options for {@link ezmq:setsockopt/3. setsockopt/3}
-%% and {@link ezmq:getsockopt/2. getsockopt/2}.<br />
+%% Available options for {@link erlzmq:setsockopt/3. setsockopt/3}
+%% and {@link erlzmq:getsockopt/2. getsockopt/2}.<br />
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_setsockopt">zmq_setsockopt</a>
 %% and <a href="http://api.zeromq.org/master:zmq_getsockopt">zmq_getsockopt</a></i>
--type ezmq_sockopt() :: hwm | swap | affinity | identity | subscribe |
+-type erlzmq_sockopt() :: hwm | swap | affinity | identity | subscribe |
                         unsubscribe | rate | recovery_ivl | mcast_loop |
                         sndbuf | rcvbuf | rcvmore | fd | events | linger |
                         reconnect_ivl | backlog | recovery_ivl_msec |
                         reconnect_ivl_max.
 
-%% @type ezmq_sockopt_value() = integer() | iolist().
-%% Possible option values for {@link ezmq:setsockopt/3. setsockopt/3}.
--type ezmq_sockopt_value() :: integer() | iolist().
+%% @type erlzmq_sockopt_value() = integer() | iolist().
+%% Possible option values for {@link erlzmq:setsockopt/3. setsockopt/3}.
+-type erlzmq_sockopt_value() :: integer() | iolist().
 

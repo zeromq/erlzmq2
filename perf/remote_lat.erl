@@ -4,13 +4,13 @@
 main([ConnectTo,MessageSizeStr,RoundtripCountStr]) ->
     {MessageSize, _} = string:to_integer(MessageSizeStr),
     {RoundtripCount, _} = string:to_integer(RoundtripCountStr),
-    {ok, Context} = ezmq:context(),
-    {ok, Socket} = ezmq:socket(Context, req),
-    ok = ezmq:connect(Socket, ConnectTo),
+    {ok, Context} = erlzmq:context(),
+    {ok, Socket} = erlzmq:socket(Context, req),
+    ok = erlzmq:connect(Socket, ConnectTo),
     Msg = list_to_binary(lists:duplicate(MessageSize, 0)),
     Do = fun() ->
-            ezmq:send(Socket, Msg),
-            {ok, Msg} = ezmq:brecv(Socket)
+            erlzmq:send(Socket, Msg),
+            {ok, Msg} = erlzmq:brecv(Socket)
         end,
 
     {Elapsed, _} = timer:tc(fun () ->
@@ -23,5 +23,5 @@ main([ConnectTo,MessageSizeStr,RoundtripCountStr]) ->
               "roundtrip count: ~p~n"
               "average latency: ~p [us]~n",
               [MessageSize, RoundtripCount, Latency]),
-   ezmq:close(Socket),
-   ezmq:term(Context).
+   erlzmq:close(Socket),
+   erlzmq:term(Context).

@@ -4,10 +4,10 @@
 #include <sys/queue.h>
 #include <stdio.h>
 
-static ErlNifResourceType* ezmq_nif_resource_context;
-static ErlNifResourceType* ezmq_nif_resource_socket;
+static ErlNifResourceType* erlzmq_nif_resource_context;
+static ErlNifResourceType* erlzmq_nif_resource_socket;
 
-typedef struct _ezmq_context {
+typedef struct _erlzmq_context {
   void * context;
   void * ipc_socket;
   char * ipc_socket_name;
@@ -15,57 +15,57 @@ typedef struct _ezmq_context {
   ErlNifCond * cond;
   ErlNifMutex * mutex;
   ErlNifTid polling_tid;
-} ezmq_context;
+} erlzmq_context;
 
-typedef struct _ezmq_socket {
+typedef struct _erlzmq_socket {
   void * socket;
-  ezmq_context * context;
-} ezmq_socket;
+  erlzmq_context * context;
+} erlzmq_socket;
 
-#define EZMQ_TERM 1211981
+#define erlzmq_TERM 1211981
 
-typedef struct _ezmq_recv {
+typedef struct _erlzmq_recv {
   ErlNifEnv * env;
   ERL_NIF_TERM ref;
   int flags;
   ErlNifPid pid;
   void * socket;
-  TAILQ_ENTRY(_ezmq_recv) recvs;
-} ezmq_recv;
-TAILQ_HEAD(recvs_head, _ezmq_recv);
+  TAILQ_ENTRY(_erlzmq_recv) recvs;
+} erlzmq_recv;
+TAILQ_HEAD(recvs_head, _erlzmq_recv);
 
 // Prototypes
 #define NIF(name) ERL_NIF_TERM name(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
-NIF(ezmq_nif_context);
-NIF(ezmq_nif_socket);
-NIF(ezmq_nif_bind);
-NIF(ezmq_nif_connect);
-NIF(ezmq_nif_setsockopt);
-NIF(ezmq_nif_getsockopt);
-NIF(ezmq_nif_send);
-NIF(ezmq_nif_brecv);
-NIF(ezmq_nif_recv);
-NIF(ezmq_nif_close);
-NIF(ezmq_nif_term);
+NIF(erlzmq_nif_context);
+NIF(erlzmq_nif_socket);
+NIF(erlzmq_nif_bind);
+NIF(erlzmq_nif_connect);
+NIF(erlzmq_nif_setsockopt);
+NIF(erlzmq_nif_getsockopt);
+NIF(erlzmq_nif_send);
+NIF(erlzmq_nif_brecv);
+NIF(erlzmq_nif_recv);
+NIF(erlzmq_nif_close);
+NIF(erlzmq_nif_term);
 
 static ErlNifFunc nif_funcs[] =
 {
-  {"context", 1, ezmq_nif_context},
-  {"socket", 2, ezmq_nif_socket},
-  {"bind", 2, ezmq_nif_bind},
-  {"connect", 2, ezmq_nif_connect},
-  {"setsockopt", 3, ezmq_nif_setsockopt},
-  {"getsockopt", 2, ezmq_nif_getsockopt},
-  {"send", 3, ezmq_nif_send},
-  {"brecv", 2, ezmq_nif_brecv},
-  {"recv", 2, ezmq_nif_recv},
-  {"close", 1, ezmq_nif_close},
-  {"term", 1, ezmq_nif_term}
+  {"context", 1, erlzmq_nif_context},
+  {"socket", 2, erlzmq_nif_socket},
+  {"bind", 2, erlzmq_nif_bind},
+  {"connect", 2, erlzmq_nif_connect},
+  {"setsockopt", 3, erlzmq_nif_setsockopt},
+  {"getsockopt", 2, erlzmq_nif_getsockopt},
+  {"send", 3, erlzmq_nif_send},
+  {"brecv", 2, erlzmq_nif_brecv},
+  {"recv", 2, erlzmq_nif_recv},
+  {"close", 1, erlzmq_nif_close},
+  {"term", 1, erlzmq_nif_term}
 };
 
 void * polling_thread(void * handle);
-NIF(ezmq_nif_context)
+NIF(erlzmq_nif_context)
 {
   int _threads;
 
@@ -73,25 +73,25 @@ NIF(ezmq_nif_context)
     return enif_make_badarg(env);
   }
 
-  ezmq_context * handle = enif_alloc_resource(ezmq_nif_resource_context,
-                                     sizeof(ezmq_context));
+  erlzmq_context * handle = enif_alloc_resource(erlzmq_nif_resource_context,
+                                     sizeof(erlzmq_context));
 
   handle->context = zmq_init(_threads);
 
   char socket_id[64];
-  sprintf(socket_id, "inproc://ezmq-%ld", (long int) handle);
+  sprintf(socket_id, "inproc://erlzmq-%ld", (long int) handle);
   handle->ipc_socket_name = strdup(socket_id);
 
   handle->ipc_socket = zmq_socket(handle->context, ZMQ_PUSH);
   zmq_bind(handle->ipc_socket,socket_id);
 
   handle->running = 0;
-  handle->mutex = enif_mutex_create("ezmq_context_mutex");
-  handle->cond = enif_cond_create("ezmq_context_cond");
+  handle->mutex = enif_mutex_create("erlzmq_context_mutex");
+  handle->cond = enif_cond_create("erlzmq_context_cond");
 
   enif_mutex_lock(handle->mutex);
   int err;
-  if ((err = enif_thread_create("ezmq_polling_thread", &handle->polling_tid,
+  if ((err = enif_thread_create("erlzmq_polling_thread", &handle->polling_tid,
                                 polling_thread, handle, NULL))) {
     enif_mutex_unlock(handle->mutex);
     enif_mutex_destroy(handle->mutex);
@@ -114,12 +114,12 @@ NIF(ezmq_nif_context)
   return enif_make_tuple2(env, enif_make_atom(env, "ok"), result);
 }
 
-NIF(ezmq_nif_socket)
+NIF(erlzmq_nif_socket)
 {
-  ezmq_context * ctx;
+  erlzmq_context * ctx;
   int _type;
 
-  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_context, (void **) &ctx)) {
+  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_context, (void **) &ctx)) {
     return enif_make_badarg(env);
   }
 
@@ -131,8 +131,8 @@ NIF(ezmq_nif_socket)
     return enif_make_badarg(env);
   }
 
-  ezmq_socket * handle = enif_alloc_resource(ezmq_nif_resource_socket,
-                                             sizeof(ezmq_socket));
+  erlzmq_socket * handle = enif_alloc_resource(erlzmq_nif_resource_socket,
+                                             sizeof(erlzmq_socket));
 
   handle->context = ctx;
   handle->socket = zmq_socket(ctx->context, _type);
@@ -143,13 +143,13 @@ NIF(ezmq_nif_socket)
   return enif_make_tuple2(env, enif_make_atom(env, "ok"), result);
 }
 
-NIF(ezmq_nif_bind)
+NIF(erlzmq_nif_bind)
 {
-  ezmq_socket * socket;
+  erlzmq_socket * socket;
   unsigned _endpoint_length;
   char * _endpoint;
 
-  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_socket, (void **) &socket)) {
+  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_socket, (void **) &socket)) {
     return enif_make_badarg(env);
   }
 
@@ -174,13 +174,13 @@ NIF(ezmq_nif_bind)
   }
 }
 
-NIF(ezmq_nif_connect)
+NIF(erlzmq_nif_connect)
 {
-  ezmq_socket * socket;
+  erlzmq_socket * socket;
   unsigned _endpoint_length;
   char * _endpoint;
 
-  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_socket, (void **) &socket)) {
+  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_socket, (void **) &socket)) {
     return enif_make_badarg(env);
   }
 
@@ -205,9 +205,9 @@ NIF(ezmq_nif_connect)
   }
 }
 
-NIF(ezmq_nif_setsockopt)
+NIF(erlzmq_nif_setsockopt)
 {
-  ezmq_socket * socket;
+  erlzmq_socket * socket;
   int _option_name;
   ErlNifUInt64 _uint64;
   ErlNifSInt64 _int64;
@@ -216,7 +216,7 @@ NIF(ezmq_nif_setsockopt)
   void *_option_value;
   size_t _option_len = 8; // 64 bit
 
-  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_socket,
+  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_socket,
                                        (void **) &socket)) {
     return enif_make_badarg(env);
   }
@@ -277,9 +277,9 @@ badarg:
   return enif_make_badarg(env);
 }
 
-NIF(ezmq_nif_getsockopt)
+NIF(erlzmq_nif_getsockopt)
 {
-  ezmq_socket * socket;
+  erlzmq_socket * socket;
   int _option_name;
   ErlNifBinary _bin;
   int64_t _option_value_64;
@@ -288,7 +288,7 @@ NIF(ezmq_nif_getsockopt)
   int _option_value_int;
   size_t _option_len = 8; // 64 bit
 
-  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_socket,
+  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_socket,
                                        (void **) &socket)) {
     return enif_make_badarg(env);
   }
@@ -349,13 +349,13 @@ error:
                                enif_make_int(env, zmq_errno()));
 }
 
-NIF(ezmq_nif_send)
+NIF(erlzmq_nif_send)
 {
-  ezmq_socket * socket;
+  erlzmq_socket * socket;
   int _flags;
   ErlNifBinary _bin;
 
-  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_socket, (void **) &socket)) {
+  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_socket, (void **) &socket)) {
     return enif_make_badarg(env);
   }
 
@@ -386,7 +386,7 @@ NIF(ezmq_nif_send)
 
 }
 
-int brecv(zmq_msg_t * msg, ezmq_socket * socket, int flags) {
+int brecv(zmq_msg_t * msg, erlzmq_socket * socket, int flags) {
   int error;
   if ((error = zmq_msg_init(msg))) {
     return zmq_errno();
@@ -399,12 +399,12 @@ int brecv(zmq_msg_t * msg, ezmq_socket * socket, int flags) {
   return 0;
 }
 
-NIF(ezmq_nif_brecv)
+NIF(erlzmq_nif_brecv)
 {
-  ezmq_socket * socket;
+  erlzmq_socket * socket;
   int _flags;
 
-  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_socket, (void **) &socket)) {
+  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_socket, (void **) &socket)) {
     return enif_make_badarg(env);
   }
 
@@ -428,13 +428,13 @@ NIF(ezmq_nif_brecv)
   return enif_make_tuple2(env, enif_make_atom(env, "ok"), enif_make_binary(env, &bin));
 }
 
-NIF(ezmq_nif_recv)
+NIF(erlzmq_nif_recv)
 {
 
-  ezmq_recv recv;
-  ezmq_socket * socket;
+  erlzmq_recv recv;
+  erlzmq_socket * socket;
 
-  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_socket,
+  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_socket,
                                        (void **) &socket)) {
     return enif_make_badarg(env);
   }
@@ -460,11 +460,11 @@ NIF(ezmq_nif_recv)
     recv.ref = enif_make_ref(recv.env);
     recv.socket = socket->socket;
 
-    if ((error = zmq_msg_init_size(&msg, sizeof(ezmq_recv)))) {
+    if ((error = zmq_msg_init_size(&msg, sizeof(erlzmq_recv)))) {
         goto q_err;
     }
 
-    memcpy(zmq_msg_data(&msg), &recv, sizeof(ezmq_recv));
+    memcpy(zmq_msg_data(&msg), &recv, sizeof(erlzmq_recv));
 
     if ((error = zmq_send(socket->context->ipc_socket, &msg, 0))) {
         goto q_err;
@@ -494,7 +494,7 @@ out:
 
 void * polling_thread(void * handle)
 {
-  ezmq_context * ctx = (ezmq_context *) handle;
+  erlzmq_context * ctx = (erlzmq_context *) handle;
   ErlNifEnv * final_env = enif_alloc_env();
   ERL_NIF_TERM final_ref;
   ERL_NIF_TERM final_pid;
@@ -515,7 +515,7 @@ void * polling_thread(void * handle)
   while (ctx->running) {
     int i;
     zmq_msg_t msg;
-    ezmq_recv *r, *rtmp;
+    erlzmq_recv *r, *rtmp;
 
     zmq_pollitem_t *items = calloc(nreaders, sizeof(zmq_pollitem_t));
     items[0].socket = ipc_socket;
@@ -555,8 +555,8 @@ void * polling_thread(void * handle)
     if (items[0].revents & ZMQ_POLLIN) {
       zmq_msg_init(&msg);
       if (!zmq_recv(items[0].socket, &msg, 0)) {
-        ezmq_recv * recv = (ezmq_recv *) zmq_msg_data(&msg);
-        if (recv->flags & EZMQ_TERM) {
+        erlzmq_recv * recv = (erlzmq_recv *) zmq_msg_data(&msg);
+        if (recv->flags & erlzmq_TERM) {
 
           final_ref = enif_make_copy(final_env, recv->ref);
           final_pid = enif_make_pid(final_env, &recv->pid);
@@ -566,8 +566,8 @@ void * polling_thread(void * handle)
           goto out;
         }
         nreaders++;
-        ezmq_recv * r = malloc(sizeof(ezmq_recv));
-        memcpy(r, recv, sizeof(ezmq_recv));
+        erlzmq_recv * r = malloc(sizeof(erlzmq_recv));
+        memcpy(r, recv, sizeof(erlzmq_recv));
         TAILQ_INSERT_TAIL(recvs_queue, r, recvs);
       }
 out:
@@ -576,7 +576,7 @@ out:
     free(items);
   }
   // cleanup reader's queue
-  ezmq_recv * r;
+  erlzmq_recv * r;
   while ((r = recvs_queue->tqh_first) != NULL) {
       TAILQ_REMOVE(recvs_queue, recvs_queue->tqh_first, recvs);
       free(r);
@@ -592,7 +592,7 @@ out:
   zmq_term(ctx->context);
 
 
-  // signal ezmq:term/2 that the context has been finally terminated
+  // signal erlzmq:term/2 that the context has been finally terminated
   ErlNifPid pid;
   enif_get_local_pid(final_env, final_pid, &pid);
 
@@ -605,12 +605,12 @@ out:
   return NULL;
 }
 
-NIF(ezmq_nif_close)
+NIF(erlzmq_nif_close)
 {
 
-  ezmq_socket * socket;
+  erlzmq_socket * socket;
 
-  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_socket, (void **) &socket)) {
+  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_socket, (void **) &socket)) {
     return enif_make_badarg(env);
   }
 
@@ -621,24 +621,24 @@ NIF(ezmq_nif_close)
   }
 }
 
-NIF(ezmq_nif_term) 
+NIF(erlzmq_nif_term) 
 {
-  ezmq_context * ctx;
+  erlzmq_context * ctx;
 
-  if (!enif_get_resource(env, argv[0], ezmq_nif_resource_context, (void **) &ctx)) {
+  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_context, (void **) &ctx)) {
     return enif_make_badarg(env);
   }
 
   zmq_msg_t msg;
-  ezmq_recv recv;
+  erlzmq_recv recv;
 
-  recv.flags = EZMQ_TERM;
+  recv.flags = erlzmq_TERM;
   recv.env = enif_alloc_env();
   recv.ref = enif_make_ref(recv.env);
   enif_self(env, &recv.pid);
 
-  zmq_msg_init_size(&msg, sizeof(ezmq_recv));
-  memcpy(zmq_msg_data(&msg), &recv, sizeof(ezmq_recv));
+  zmq_msg_init_size(&msg, sizeof(erlzmq_recv));
+  memcpy(zmq_msg_data(&msg), &recv, sizeof(erlzmq_recv));
   zmq_send(ctx->ipc_socket, &msg, ZMQ_NOBLOCK);
   zmq_msg_close(&msg);
 
@@ -647,15 +647,15 @@ NIF(ezmq_nif_term)
 
 static int on_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
 {
-  ezmq_nif_resource_context =
-    enif_open_resource_type(env, "ezmq_nif",
-                            "ezmq_nif_resource_context",
+  erlzmq_nif_resource_context =
+    enif_open_resource_type(env, "erlzmq_nif",
+                            "erlzmq_nif_resource_context",
                             NULL,
                             ERL_NIF_RT_CREATE | ERL_NIF_RT_TAKEOVER,
                             0);
-  ezmq_nif_resource_socket =
-    enif_open_resource_type(env, "ezmq_nif",
-                            "ezmq_nif_resource_socket",
+  erlzmq_nif_resource_socket =
+    enif_open_resource_type(env, "erlzmq_nif",
+                            "erlzmq_nif_resource_socket",
                             NULL,
                             ERL_NIF_RT_CREATE | ERL_NIF_RT_TAKEOVER,
                             0);
@@ -665,5 +665,5 @@ static int on_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
 static void on_unload(ErlNifEnv* env, void* priv_data) {
 }
 
-ERL_NIF_INIT(ezmq_nif, nif_funcs, &on_load, NULL, NULL, &on_unload);
+ERL_NIF_INIT(erlzmq_nif, nif_funcs, &on_load, NULL, NULL, &on_unload);
 

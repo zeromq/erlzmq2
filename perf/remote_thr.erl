@@ -4,10 +4,10 @@
 main([ConnectTo,MessageSizeStr,MessageCountStr]) ->
     {MessageSize, _} = string:to_integer(MessageSizeStr),
     {MessageCount, _} = string:to_integer(MessageCountStr),
-    {ok, Context} = ezmq:context(1),
-    {ok, Socket} = ezmq:socket(Context,pub),
-    ezmq:connect(Socket, ConnectTo),
+    {ok, Context} = erlzmq:context(1),
+    {ok, Socket} = erlzmq:socket(Context,pub),
+    erlzmq:connect(Socket, ConnectTo),
     Msg = list_to_binary(lists:duplicate(MessageSize, 0)),
-    ezmq_perf:send_loop(MessageCount, Socket, Msg),
-    ezmq:close(Socket),
-    ezmq:term(Context).
+    erlzmq_perf:send_loop(MessageCount, Socket, Msg),
+    erlzmq:close(Socket),
+    erlzmq:term(Context).
