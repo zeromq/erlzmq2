@@ -109,7 +109,6 @@ NIF(erlzmq_nif_context)
   enif_mutex_unlock(handle->mutex);
 
   ERL_NIF_TERM result = enif_make_resource(env, handle);
-  enif_release_resource(handle);
 
   return enif_make_tuple2(env, enif_make_atom(env, "ok"), result);
 }
@@ -138,7 +137,6 @@ NIF(erlzmq_nif_socket)
   handle->socket = zmq_socket(ctx->context, _type);
 
   ERL_NIF_TERM result = enif_make_resource(env, handle);
-  enif_release_resource(handle);
 
   return enif_make_tuple2(env, enif_make_atom(env, "ok"), result);
 }
@@ -614,6 +612,9 @@ NIF(erlzmq_nif_close)
     return enif_make_badarg(env);
   }
 
+  enif_release_resource(socket);
+
+
   if (-1 == zmq_close(socket->socket)) {
     return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
   } else {
@@ -641,6 +642,8 @@ NIF(erlzmq_nif_term)
   memcpy(zmq_msg_data(&msg), &recv, sizeof(erlzmq_recv));
   zmq_send(ctx->ipc_socket, &msg, ZMQ_NOBLOCK);
   zmq_msg_close(&msg);
+
+  enif_release_resource(ctx);
 
   return enif_make_copy(env, recv.ref);
 }
