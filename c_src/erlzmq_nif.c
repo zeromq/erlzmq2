@@ -536,6 +536,9 @@ out:
     }
     free(items);
   }
+  enif_mutex_lock(ctx->mutex);
+  enif_mutex_unlock(ctx->mutex);
+
   // cleanup reader's queue
   erlzmq_recv * r;
   while ((r = recvs_queue->tqh_first) != NULL) {
@@ -589,7 +592,8 @@ NIF(erlzmq_nif_term)
 {
   erlzmq_context * ctx;
 
-  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_context, (void **) &ctx)) {
+  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_context,
+                                       (void **) &ctx)) {
     return enif_make_badarg(env);
   }
 
@@ -603,7 +607,9 @@ NIF(erlzmq_nif_term)
 
   zmq_msg_init_size(&msg, sizeof(erlzmq_recv));
   memcpy(zmq_msg_data(&msg), &recv, sizeof(erlzmq_recv));
+  enif_mutex_lock(ctx->mutex);
   zmq_send(ctx->ipc_socket, &msg, 0);
+  enif_mutex_unlock(ctx->mutex);
   zmq_msg_close(&msg);
 
   enif_release_resource(ctx);
