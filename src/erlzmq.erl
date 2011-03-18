@@ -86,7 +86,17 @@ send(Socket, Binary) ->
 -spec send(Socket :: erlzmq_socket(), Data :: erlzmq_data(), Flags :: erlzmq_send_recv_flags()) -> ok | erlzmq_error().
 
 send(Socket, Binary, Flags) when is_list(Flags) ->
-    erlzmq_result(erlzmq_nif:send(Socket, Binary, sendrecv_flags(Flags))).
+    case erlzmq_nif:send(Socket, Binary, sendrecv_flags(Flags)) of
+        Ref when is_reference(Ref) ->
+            receive
+                {Ref, ok} ->
+                    ok;
+                {Ref, error, Error} ->
+                    {error, Error}
+            end;
+        Result ->
+            erlzmq_result(Result)
+    end.
 
 %% @equiv recv(Socket, 0)
 %% @spec recv(erlzmq_socket()) -> {ok, erlzmq_data()} | erlzmq_error()
