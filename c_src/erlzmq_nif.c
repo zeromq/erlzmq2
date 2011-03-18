@@ -640,7 +640,7 @@ NIF(erlzmq_nif_term)
 
   zmq_msg_init_size(&msg, sizeof(erlzmq_recv));
   memcpy(zmq_msg_data(&msg), &recv, sizeof(erlzmq_recv));
-  zmq_send(ctx->ipc_socket, &msg, ZMQ_NOBLOCK);
+  zmq_send(ctx->ipc_socket, &msg, 0);
   zmq_msg_close(&msg);
 
   enif_release_resource(ctx);
