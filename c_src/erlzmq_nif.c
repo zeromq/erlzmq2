@@ -44,7 +44,6 @@ NIF(erlzmq_nif_connect);
 NIF(erlzmq_nif_setsockopt);
 NIF(erlzmq_nif_getsockopt);
 NIF(erlzmq_nif_send);
-NIF(erlzmq_nif_brecv);
 NIF(erlzmq_nif_recv);
 NIF(erlzmq_nif_close);
 NIF(erlzmq_nif_term);
@@ -58,7 +57,6 @@ static ErlNifFunc nif_funcs[] =
   {"setsockopt", 3, erlzmq_nif_setsockopt},
   {"getsockopt", 2, erlzmq_nif_getsockopt},
   {"send", 3, erlzmq_nif_send},
-  {"brecv", 2, erlzmq_nif_brecv},
   {"recv", 2, erlzmq_nif_recv},
   {"close", 1, erlzmq_nif_close},
   {"term", 1, erlzmq_nif_term}
@@ -384,48 +382,6 @@ NIF(erlzmq_nif_send)
 
 }
 
-int brecv(zmq_msg_t * msg, erlzmq_socket * socket, int flags) {
-  int error;
-  if ((error = zmq_msg_init(msg))) {
-    return zmq_errno();
-  }
-
-  if ((error = zmq_recv(socket->socket, msg, flags))) {
-    return zmq_errno();
-  }
-
-  return 0;
-}
-
-NIF(erlzmq_nif_brecv)
-{
-  erlzmq_socket * socket;
-  int _flags;
-
-  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_socket, (void **) &socket)) {
-    return enif_make_badarg(env);
-  }
-
-  if (!enif_get_int(env, argv[1], &_flags)) {
-    return enif_make_badarg(env);
-  }
-
-  int error;
-  zmq_msg_t msg;
-
-  if ((error = brecv(&msg, socket, _flags))) {
-    return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, error));
-  }
-
-  ErlNifBinary bin;
-  enif_alloc_binary(zmq_msg_size(&msg), &bin);
-  memcpy(bin.data, zmq_msg_data(&msg), zmq_msg_size(&msg));
-
-  zmq_msg_close(&msg);
-
-  return enif_make_tuple2(env, enif_make_atom(env, "ok"), enif_make_binary(env, &bin));
-}
-
 NIF(erlzmq_nif_recv)
 {
 
@@ -446,45 +402,52 @@ NIF(erlzmq_nif_recv)
   int error;
   zmq_msg_t msg;
 
-  // try brecv with noblock
-
-  error = brecv(&msg, socket, ZMQ_NOBLOCK);
-
-  if (error == EAGAIN) { // if nothing is there, hand it off to the receiver thread
-    if (recv.flags & ZMQ_NOBLOCK) {
-      goto out;
-    }
-    recv.env = enif_alloc_env();
-    recv.ref = enif_make_ref(recv.env);
-    recv.socket = socket->socket;
-
-    if ((error = zmq_msg_init_size(&msg, sizeof(erlzmq_recv)))) {
-        goto q_err;
-    }
-
-    memcpy(zmq_msg_data(&msg), &recv, sizeof(erlzmq_recv));
-
-    if ((error = zmq_send(socket->context->ipc_socket, &msg, 0))) {
-        goto q_err;
-    }
-
-    zmq_msg_close(&msg);
-
-    return enif_make_copy(env, recv.ref);
-q_err:
-    enif_free_env(recv.env);
-    return enif_make_tuple2(env, enif_make_atom(env, "error"),
-                                 enif_make_int(env, zmq_errno()));
-  } else if (error == 0) { // return result immediately
-    ErlNifBinary bin;
-    enif_alloc_binary(zmq_msg_size(&msg), &bin);
-    memcpy(bin.data, zmq_msg_data(&msg), zmq_msg_size(&msg));
-
-    zmq_msg_close(&msg);
-
-    return enif_make_tuple2(env, enif_make_atom(env, "ok"),
-                                 enif_make_binary(env, &bin));
+  if (zmq_msg_init(&msg)) {
+    goto errno_out;
   }
+
+  // try recv with noblock
+  if (zmq_recv(socket->socket, &msg, ZMQ_NOBLOCK)) {
+    error = zmq_errno();
+    if (error == EAGAIN) { // if nothing is there, hand it off to the receiver thread
+      if (recv.flags & ZMQ_NOBLOCK) {
+        goto out;
+      }
+      recv.env = enif_alloc_env();
+      recv.ref = enif_make_ref(recv.env);
+      recv.socket = socket->socket;
+
+      if (zmq_msg_init_size(&msg, sizeof(erlzmq_recv))) {
+        goto q_err;
+      }
+
+      memcpy(zmq_msg_data(&msg), &recv, sizeof(erlzmq_recv));
+
+      if (zmq_send(socket->context->ipc_socket, &msg, 0)) {
+        zmq_msg_close(&msg);
+        goto q_err;
+      }
+
+      zmq_msg_close(&msg);
+
+      return enif_make_copy(env, recv.ref);
+q_err:
+      enif_free_env(recv.env);
+      goto errno_out;
+    } else {
+        goto out;
+    }
+  }
+  ErlNifBinary bin;
+  enif_alloc_binary(zmq_msg_size(&msg), &bin);
+  memcpy(bin.data, zmq_msg_data(&msg), zmq_msg_size(&msg));
+
+  zmq_msg_close(&msg);
+
+  return enif_make_tuple2(env, enif_make_atom(env, "ok"),
+                               enif_make_binary(env, &bin));
+errno_out:
+  error = zmq_errno();
 out:
   return enif_make_tuple2(env, enif_make_atom(env, "error"),
                                enif_make_int(env, error));

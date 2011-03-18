@@ -2,8 +2,7 @@
 %% @headerfile "erlzmq.hrl"
 -include_lib("erlzmq.hrl").
 -export([context/0, context/1, socket/2, bind/2, connect/2, send/2, send/3,
-         brecv/1, brecv/2, recv/1, recv/2, setsockopt/3, getsockopt/2,
-         close/1, term/1, term/2]).
+         recv/1, recv/2, setsockopt/3, getsockopt/2, close/1, term/1, term/2]).
 -export_type([erlzmq_socket/0, erlzmq_context/0]).
 
 %% @equiv context(1)
@@ -88,23 +87,6 @@ send(Socket, Binary) ->
 
 send(Socket, Binary, Flags) when is_list(Flags) ->
     erlzmq_result(erlzmq_nif:send(Socket, Binary, sendrecv_flags(Flags))).
-
-%% @equiv brecv(Socket, 0)
-%% @spec brecv(erlzmq_socket()) -> {ok, erlzmq_data()} | erlzmq_error()
--spec brecv(Socket :: erlzmq_socket()) -> {ok, erlzmq_data()} | erlzmq_error().
-
-brecv(Socket) ->
-    erlzmq_result(brecv(Socket, [])).
-
-%% @doc Receive a message from a socket in a blocking way.
-%% This function can block the current VM scheduler. <b>DO NOT USE IT UNLESS YOU REALLY KNOW WHAT YOU ARE DOING</b>.
-%% @end
-%% @spec brecv(erlzmq_socket(), erlzmq_send_recv_flags()) -> {ok, erlzmq_data()} | erlzmq_error()
--spec brecv(Socket :: erlzmq_socket(), Flags :: erlzmq_send_recv_flags()) -> {ok, erlzmq_data()} | erlzmq_error().
-
-brecv(Socket, Flags) when is_list(Flags) ->
-   erlzmq_result( erlzmq_nif:brecv(Socket, sendrecv_flags(Flags))).
-
 
 %% @equiv recv(Socket, 0)
 %% @spec recv(erlzmq_socket()) -> {ok, erlzmq_data()} | erlzmq_error()
