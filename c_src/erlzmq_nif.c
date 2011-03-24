@@ -1,3 +1,7 @@
+/* -*- coding:utf-8;Mode:C;tab-width:2;c-basic-offset:2;indent-tabs-mode:nil -*-
+ * ex: set softtabstop=2 tabstop=2 shiftwidth=2 expandtab fileencoding=utf-8:
+ */
+
 #include "zmq.h"
 #include "erl_nif.h"
 #include <string.h>
@@ -7,7 +11,7 @@
 static ErlNifResourceType* erlzmq_nif_resource_context;
 static ErlNifResourceType* erlzmq_nif_resource_socket;
 
-typedef struct _erlzmq_context {
+typedef struct erlzmq_context_t {
   void * context;
   void * ipc_socket;
   char * ipc_socket_name;
@@ -17,14 +21,14 @@ typedef struct _erlzmq_context {
   ErlNifTid polling_tid;
 } erlzmq_context;
 
-typedef struct _erlzmq_socket {
+typedef struct erlzmq_socket_t {
   void * socket;
   erlzmq_context * context;
 } erlzmq_socket;
 
 #define erlzmq_TERM 1211981
 
-typedef struct _erlzmq_ipc_request {
+typedef struct erlzmq_ipc_request_t {
   ErlNifEnv * env;
   ERL_NIF_TERM ref;
   int flags;
@@ -32,12 +36,13 @@ typedef struct _erlzmq_ipc_request {
   zmq_msg_t msg;
   ErlNifPid pid;
   void * socket;
-  TAILQ_ENTRY(_erlzmq_ipc_request) requests;
+  TAILQ_ENTRY(erlzmq_ipc_request_t) requests;
 } erlzmq_ipc_request;
-TAILQ_HEAD(requests_head, _erlzmq_ipc_request);
+TAILQ_HEAD(requests_head, erlzmq_ipc_request_t);
 
 // Prototypes
-#define NIF(name) ERL_NIF_TERM name(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+#define NIF(name) \
+  ERL_NIF_TERM name(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
 NIF(erlzmq_nif_context);
 NIF(erlzmq_nif_socket);
@@ -49,6 +54,9 @@ NIF(erlzmq_nif_send);
 NIF(erlzmq_nif_recv);
 NIF(erlzmq_nif_close);
 NIF(erlzmq_nif_term);
+
+void * polling_thread(void * handle);
+static ERL_NIF_TERM return_zmq_errno(ErlNifEnv* env, int const value);
 
 static ErlNifFunc nif_funcs[] =
 {
@@ -64,19 +72,18 @@ static ErlNifFunc nif_funcs[] =
   {"term", 1, erlzmq_nif_term}
 };
 
-void * polling_thread(void * handle);
 NIF(erlzmq_nif_context)
 {
-  int _threads;
+  int thread_count;
 
-  if (!enif_get_int(env, argv[0], &_threads)) {
+  if (!enif_get_int(env, argv[0], &thread_count)) {
     return enif_make_badarg(env);
   }
 
   erlzmq_context * handle = enif_alloc_resource(erlzmq_nif_resource_context,
-                                     sizeof(erlzmq_context));
+                                                sizeof(erlzmq_context));
 
-  handle->context = zmq_init(_threads);
+  handle->context = zmq_init(thread_count);
 
   char socket_id[64];
   sprintf(socket_id, "inproc://erlzmq-%ld", (long int) handle);
@@ -100,8 +107,7 @@ NIF(erlzmq_nif_context)
     free(handle->ipc_socket_name);
     zmq_term(handle->context);
     enif_release_resource(handle);
-    return enif_make_tuple2(env, enif_make_atom(env, "error"),
-                                 enif_make_int(env, err));
+    return return_zmq_errno(env, err);
   }
   while (handle->running == 0) {
     enif_cond_wait(handle->cond, handle->mutex);
@@ -116,13 +122,14 @@ NIF(erlzmq_nif_context)
 NIF(erlzmq_nif_socket)
 {
   erlzmq_context * ctx;
-  int _type;
+  int socket_type;
 
-  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_context, (void **) &ctx)) {
+  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_context,
+                         (void **) &ctx)) {
     return enif_make_badarg(env);
   }
 
-  if (!enif_get_int(env, argv[1], &_type)) {
+  if (!enif_get_int(env, argv[1], &socket_type)) {
     return enif_make_badarg(env);
   }
   
@@ -131,10 +138,10 @@ NIF(erlzmq_nif_socket)
   }
 
   erlzmq_socket * handle = enif_alloc_resource(erlzmq_nif_resource_socket,
-                                             sizeof(erlzmq_socket));
+                                               sizeof(erlzmq_socket));
 
   handle->context = ctx;
-  handle->socket = zmq_socket(ctx->context, _type);
+  handle->socket = zmq_socket(ctx->context, socket_type);
 
   ERL_NIF_TERM result = enif_make_resource(env, handle);
 
@@ -144,221 +151,216 @@ NIF(erlzmq_nif_socket)
 NIF(erlzmq_nif_bind)
 {
   erlzmq_socket * socket;
-  unsigned _endpoint_length;
-  char * _endpoint;
+  unsigned endpoint_length;
+  char * endpoint;
 
-  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_socket, (void **) &socket)) {
+  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_socket,
+                         (void **) &socket)) {
     return enif_make_badarg(env);
   }
 
-  if (!enif_get_list_length(env, argv[1], &_endpoint_length)) {
+  if (!enif_get_list_length(env, argv[1], &endpoint_length)) {
     return enif_make_badarg(env);
   }
 
-  _endpoint = (char *) malloc(_endpoint_length + 1);
+  endpoint = (char *) malloc(endpoint_length + 1);
 
-  if (!enif_get_string(env, argv[1], _endpoint, _endpoint_length + 1, ERL_NIF_LATIN1)) {
+  if (!enif_get_string(env, argv[1], endpoint, endpoint_length + 1,
+                       ERL_NIF_LATIN1)) {
     return enif_make_badarg(env);
   }
 
-  int error;
-
-  if (!(error = zmq_bind(socket->socket, _endpoint))) {
-    free(_endpoint);
-    return enif_make_atom(env, "ok");
+  if (zmq_bind(socket->socket, endpoint)) {
+    free(endpoint);
+    return return_zmq_errno(env, zmq_errno());
   } else {
-    free(_endpoint);
-    return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
+    free(endpoint);
+    return enif_make_atom(env, "ok");
   }
 }
 
 NIF(erlzmq_nif_connect)
 {
   erlzmq_socket * socket;
-  unsigned _endpoint_length;
-  char * _endpoint;
+  unsigned endpoint_length;
+  char * endpoint;
 
-  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_socket, (void **) &socket)) {
+  if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_socket,
+                         (void **) &socket)) {
     return enif_make_badarg(env);
   }
 
-  if (!enif_get_list_length(env, argv[1], &_endpoint_length)) {
+  if (!enif_get_list_length(env, argv[1], &endpoint_length)) {
     return enif_make_badarg(env);
   }
 
-  _endpoint = (char *) malloc(_endpoint_length + 1);
+  endpoint = (char *) malloc(endpoint_length + 1);
 
-  if (!enif_get_string(env, argv[1], _endpoint, _endpoint_length + 1, ERL_NIF_LATIN1)) {
+  if (!enif_get_string(env, argv[1], endpoint, endpoint_length + 1,
+                       ERL_NIF_LATIN1)) {
     return enif_make_badarg(env);
   }
 
-  int error;
-
-  if (!(error = zmq_connect(socket->socket, _endpoint))) {
-    free(_endpoint);
-    return enif_make_atom(env, "ok");
+  if (zmq_connect(socket->socket, endpoint)) {
+    free(endpoint);
+    return return_zmq_errno(env, zmq_errno());
   } else {
-    free(_endpoint);
-    return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_int(env, zmq_errno()));
+    free(endpoint);
+    return enif_make_atom(env, "ok");
   }
 }
 
 NIF(erlzmq_nif_setsockopt)
 {
   erlzmq_socket * socket;
-  int _option_name;
-  ErlNifUInt64 _uint64;
-  ErlNifSInt64 _int64;
-  ErlNifBinary _bin;
-  int _int;
-  void *_option_value;
-  size_t _option_len = 8; // 64 bit
+  int option_name;
+  ErlNifUInt64 value_uint64;
+  ErlNifSInt64 value_int64;
+  ErlNifBinary binary;
+  int value_int;
+  void *option_value;
+  size_t option_len = 8; // 64 bit
 
   if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_socket,
-                                       (void **) &socket)) {
+                         (void **) &socket)) {
     return enif_make_badarg(env);
   }
 
-  if (!enif_get_int(env, argv[1], &_option_name)) {
+  if (!enif_get_int(env, argv[1], &option_name)) {
     return enif_make_badarg(env);
   }
 
-  switch (_option_name) {
+  switch (option_name) {
     case ZMQ_HWM: // uint64_t
     case ZMQ_AFFINITY:
     case ZMQ_SNDBUF:
     case ZMQ_RCVBUF:
-        if (!enif_get_uint64(env, argv[2], &_uint64)) {
-            goto badarg;
+        if (!enif_get_uint64(env, argv[2], &value_uint64)) {
+          return enif_make_badarg(env);
         }
-        _option_value = &_uint64;
+        option_value = &value_uint64;
         break;
     case ZMQ_SWAP: // int64_t
     case ZMQ_RATE:
     case ZMQ_RECOVERY_IVL:
     case ZMQ_MCAST_LOOP:
-        if (!enif_get_int64(env, argv[2], &_int64)) {
-            goto badarg;
+        if (!enif_get_int64(env, argv[2], &value_int64)) {
+          return enif_make_badarg(env);
         }
-        _option_value = &_int64;
+        option_value = &value_int64;
         break;
     case ZMQ_IDENTITY: // binary
     case ZMQ_SUBSCRIBE:
     case ZMQ_UNSUBSCRIBE:
-        if (!enif_inspect_iolist_as_binary(env, argv[2], &_bin)) {
-            goto badarg;
+        if (!enif_inspect_iolist_as_binary(env, argv[2], &binary)) {
+          return enif_make_badarg(env);
         }
-        _option_value = _bin.data;
-        _option_len = _bin.size;
+        option_value = binary.data;
+        option_len = binary.size;
         break;
     case ZMQ_LINGER: // int
     case ZMQ_RECONNECT_IVL:
     case ZMQ_BACKLOG:
-        if (!enif_get_int(env, argv[1], &_int)) {
-            goto badarg;
+        if (!enif_get_int(env, argv[1], &value_int)) {
+          return enif_make_badarg(env);
         }
-        _option_value = &_int;
-        _option_len = sizeof(int);
+        option_value = &value_int;
+        option_len = sizeof(int);
         break;
     default:
-        goto badarg;
+        return enif_make_badarg(env);
   }
 
-  if (zmq_setsockopt(socket->socket, _option_name,
-                     _option_value, _option_len)) {
-    return enif_make_tuple2(env, enif_make_atom(env, "error"),
-                                 enif_make_int(env, zmq_errno()));
+  if (zmq_setsockopt(socket->socket, option_name,
+                     option_value, option_len)) {
+    return return_zmq_errno(env, zmq_errno());
   }
-  return enif_make_atom(env, "ok");
-
-badarg:
-  return enif_make_badarg(env);
+  else {
+    return enif_make_atom(env, "ok");
+  }
 }
 
 NIF(erlzmq_nif_getsockopt)
 {
   erlzmq_socket * socket;
-  int _option_name;
+  int option_name;
   ErlNifBinary _bin;
-  int64_t _option_value_64;
-  int64_t _option_value_u64;
-  char _option_value[255];
-  int _option_value_int;
-  size_t _option_len = 8; // 64 bit
+  int64_t option_value_64;
+  int64_t option_value_u64;
+  char option_value[255];
+  int option_value_int;
+  size_t option_len = 8; // 64 bit
 
   if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_socket,
-                                       (void **) &socket)) {
+                         (void **) &socket)) {
     return enif_make_badarg(env);
   }
 
-  if (!enif_get_int(env, argv[1], &_option_name)) {
+  if (!enif_get_int(env, argv[1], &option_name)) {
     return enif_make_badarg(env);
   }
 
-  switch(_option_name) {
+  switch(option_name) {
     case ZMQ_RCVMORE: // int64_t
     case ZMQ_SWAP:
     case ZMQ_RATE:
     case ZMQ_RECOVERY_IVL:
     case ZMQ_RECOVERY_IVL_MSEC:
     case ZMQ_MCAST_LOOP:
-      if (zmq_getsockopt(socket->socket, _option_name,
-                         &_option_value_64, &_option_len)) {
-        goto error;
+      if (zmq_getsockopt(socket->socket, option_name,
+                         &option_value_64, &option_len)) {
+        return return_zmq_errno(env, zmq_errno());
       }
       return enif_make_tuple2(env, enif_make_atom(env, "ok"),
-                                   enif_make_int64(env, _option_value_64));
+                              enif_make_int64(env, option_value_64));
     case ZMQ_HWM: // uint64_t
     case ZMQ_AFFINITY:
     case ZMQ_SNDBUF:
     case ZMQ_RCVBUF:
-      if (zmq_getsockopt(socket->socket, _option_name,
-                         &_option_value_u64, &_option_len)) {
-        goto error;
+      if (zmq_getsockopt(socket->socket, option_name,
+                         &option_value_u64, &option_len)) {
+        return return_zmq_errno(env, zmq_errno());
       }
       return enif_make_tuple2(env, enif_make_atom(env, "ok"),
-                                   enif_make_uint64(env, _option_value_u64));
+                              enif_make_uint64(env, option_value_u64));
     case ZMQ_IDENTITY: // binary
-      if (zmq_getsockopt(socket->socket, _option_name,
-                         _option_value, &_option_len)) {
-        goto error;
+      if (zmq_getsockopt(socket->socket, option_name,
+                         option_value, &option_len)) {
+        return return_zmq_errno(env, zmq_errno());
       }
-      enif_alloc_binary(_option_len, &_bin);
-      memcpy(_bin.data, _option_value, _option_len);
+      enif_alloc_binary(option_len, &_bin);
+      memcpy(_bin.data, option_value, option_len);
       return enif_make_tuple2(env, enif_make_atom(env, "ok"),
-                                   enif_make_binary(env, &_bin));
+                              enif_make_binary(env, &_bin));
     case ZMQ_TYPE: // int
     case ZMQ_LINGER:
     case ZMQ_RECONNECT_IVL:
     case ZMQ_RECONNECT_IVL_MAX:
     case ZMQ_BACKLOG:
     case ZMQ_FD: // FIXME: ZMQ_FD returns SOCKET on Windows
-      if (zmq_getsockopt(socket->socket, _option_name,
-                         &_option_value_int, &_option_len)) {
-        goto error;
+      if (zmq_getsockopt(socket->socket, option_name,
+                         &option_value_int, &option_len)) {
+        return return_zmq_errno(env, zmq_errno());
       }
       return enif_make_tuple2(env, enif_make_atom(env, "ok"),
-                                   enif_make_int(env, _option_value_int));
+                              enif_make_int(env, option_value_int));
     default:
       return enif_make_badarg(env);
   }
-error:
-  return enif_make_tuple2(env, enif_make_atom(env, "error"),
-                               enif_make_int(env, zmq_errno()));
 }
 
 NIF(erlzmq_nif_send)
 {
   erlzmq_ipc_request req;
   erlzmq_socket * socket;
-  ErlNifBinary _bin;
+  ErlNifBinary binary;
 
   if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_socket,
                                        (void **) &socket)) {
     return enif_make_badarg(env);
   }
 
-  if (!enif_inspect_iolist_as_binary(env, argv[1], &_bin)) {
+  if (!enif_inspect_iolist_as_binary(env, argv[1], &binary)) {
     return enif_make_badarg(env);
   }
 
@@ -368,19 +370,17 @@ NIF(erlzmq_nif_send)
 
   enif_self(env, &req.pid);
 
-  int error;
-
-  if (zmq_msg_init_size(&req.msg, _bin.size)) {
-    goto errno_out;
+  if (zmq_msg_init_size(&req.msg, binary.size)) {
+    return return_zmq_errno(env, zmq_errno());
   }
 
-  memcpy(zmq_msg_data(&req.msg), _bin.data, _bin.size);
+  memcpy(zmq_msg_data(&req.msg), binary.data, binary.size);
 
   if (zmq_send(socket->socket, &req.msg, req.flags|ZMQ_NOBLOCK)) {
-    error = zmq_errno();
+    int const error = zmq_errno();
     if (error != EAGAIN || (error == EAGAIN && (req.flags & ZMQ_NOBLOCK))) {
       zmq_msg_close(&req.msg);
-      goto out;
+      return return_zmq_errno(env, error);
     }
     zmq_msg_t msg;
     req.poll_flag = ZMQ_POLLOUT;
@@ -389,39 +389,32 @@ NIF(erlzmq_nif_send)
     req.socket = socket->socket;
 
     if (zmq_msg_init_size(&msg, sizeof(erlzmq_ipc_request))) {
-      goto q_err;
+      zmq_msg_close(&req.msg);
+      enif_free_env(req.env);
+      return return_zmq_errno(env, zmq_errno());
     }
 
     memcpy(zmq_msg_data(&msg), &req, sizeof(erlzmq_ipc_request));
 
     if (zmq_send(socket->context->ipc_socket, &msg, 0)) {
       zmq_msg_close(&msg);
-      goto q_err;
+      zmq_msg_close(&req.msg);
+      enif_free_env(req.env);
+      return return_zmq_errno(env, zmq_errno());
     }
 
     zmq_msg_close(&msg);
 
     return enif_make_copy(env, req.ref);
-q_err:
-    zmq_msg_close(&req.msg);
-    enif_free_env(req.env);
-    goto errno_out;
   }
 
   zmq_msg_close(&req.msg);
 
   return enif_make_atom(env, "ok");
-
-errno_out:
-  error = zmq_errno();
-out:
-  return enif_make_tuple2(env, enif_make_atom(env, "error"),
-                               enif_make_int(env, error));
 }
 
 NIF(erlzmq_nif_recv)
 {
-
   erlzmq_ipc_request req;
   erlzmq_socket * socket;
 
@@ -436,18 +429,17 @@ NIF(erlzmq_nif_recv)
 
   enif_self(env, &req.pid);
 
-  int error;
   zmq_msg_t msg;
 
   if (zmq_msg_init(&msg)) {
-    goto errno_out;
+    return return_zmq_errno(env, zmq_errno());
   }
 
   // try recv with noblock
   if (zmq_recv(socket->socket, &msg, ZMQ_NOBLOCK)) {
-    error = zmq_errno();
+    int const error = zmq_errno();
     if (error != EAGAIN || (error == EAGAIN && (req.flags & ZMQ_NOBLOCK))) {
-        goto out;
+      return return_zmq_errno(env, error);
     }
     req.poll_flag = ZMQ_POLLIN;
     req.env = enif_alloc_env();
@@ -455,22 +447,21 @@ NIF(erlzmq_nif_recv)
     req.socket = socket->socket;
 
     if (zmq_msg_init_size(&msg, sizeof(erlzmq_ipc_request))) {
-      goto q_err;
+      enif_free_env(req.env);
+      return return_zmq_errno(env, zmq_errno());
     }
 
     memcpy(zmq_msg_data(&msg), &req, sizeof(erlzmq_ipc_request));
 
     if (zmq_send(socket->context->ipc_socket, &msg, 0)) {
       zmq_msg_close(&msg);
-      goto q_err;
+      enif_free_env(req.env);
+      return return_zmq_errno(env, zmq_errno());
     }
 
     zmq_msg_close(&msg);
 
     return enif_make_copy(env, req.ref);
-q_err:
-    enif_free_env(req.env);
-    goto errno_out;
   }
   ErlNifBinary bin;
   enif_alloc_binary(zmq_msg_size(&msg), &bin);
@@ -480,11 +471,6 @@ q_err:
 
   return enif_make_tuple2(env, enif_make_atom(env, "ok"),
                                enif_make_binary(env, &bin));
-errno_out:
-  error = zmq_errno();
-out:
-  return enif_make_tuple2(env, enif_make_atom(env, "error"),
-                               enif_make_int(env, error));
 }
 
 void * polling_thread(void * handle)
@@ -624,7 +610,6 @@ out:
 
 NIF(erlzmq_nif_close)
 {
-
   erlzmq_socket * socket;
 
   if (!enif_get_resource(env, argv[0], erlzmq_nif_resource_socket,
@@ -636,8 +621,7 @@ NIF(erlzmq_nif_close)
 
 
   if (-1 == zmq_close(socket->socket)) {
-    return enif_make_tuple2(env, enif_make_atom(env, "error"),
-                                 enif_make_int(env, zmq_errno()));
+    return return_zmq_errno(env, zmq_errno());
   } else {
     return enif_make_atom(env, "ok");
   }
@@ -690,6 +674,229 @@ static int on_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
 }
 
 static void on_unload(ErlNifEnv* env, void* priv_data) {
+}
+
+static ERL_NIF_TERM return_zmq_errno(ErlNifEnv* env, int const value)
+{
+  switch (value)
+  {
+    case EPERM:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eperm"));
+    case ENOENT:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enoent"));
+    case ESRCH:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "esrch"));
+    case EINTR:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eintr"));
+    case EIO:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eio"));
+    case ENXIO:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enxio"));
+    case ENOEXEC:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enoexec"));
+    case EBADF:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "ebadf"));
+    case ECHILD:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "echild"));
+    case EDEADLK:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "edeadlk"));
+    case ENOMEM:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enomem"));
+    case EACCES:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eacces"));
+    case EFAULT:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "efault"));
+    case ENOTBLK:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enotblk"));
+    case EBUSY:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "ebusy"));
+    case EEXIST:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eexist"));
+    case EXDEV:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "exdev"));
+    case ENODEV:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enodev"));
+    case ENOTDIR:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enotdir"));
+    case EISDIR:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eisdir"));
+    case EINVAL:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "einval"));
+    case ENFILE:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enfile"));
+    case EMFILE:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "emfile"));
+    case ETXTBSY:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "etxtbsy"));
+    case EFBIG:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "efbig"));
+    case ENOSPC:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enospc"));
+    case ESPIPE:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "espipe"));
+    case EROFS:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "erofs"));
+    case EMLINK:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "emlink"));
+    case EPIPE:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "epipe"));
+    case EAGAIN:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eagain"));
+    case EINPROGRESS:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "einprogress"));
+    case EALREADY:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "ealready"));
+    case ENOTSOCK:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enotsock"));
+    case EDESTADDRREQ:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "edestaddrreq"));
+    case EMSGSIZE:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "emsgsize"));
+    case EPROTOTYPE:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eprototype"));
+    case ENOPROTOOPT:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eprotoopt"));
+    case EPROTONOSUPPORT:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eprotonosupport"));
+    case ESOCKTNOSUPPORT:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "esocktnosupport"));
+    case ENOTSUP:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enotsup"));
+    case EPFNOSUPPORT:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "epfnosupport"));
+    case EAFNOSUPPORT:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eafnosupport"));
+    case EADDRINUSE:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eaddrinuse"));
+    case EADDRNOTAVAIL:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eaddrnotavail"));
+    case ENETDOWN:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enetdown"));
+    case ENETUNREACH:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enetunreach"));
+    case ENETRESET:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enetreset"));
+    case ECONNABORTED:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "econnaborted"));
+    case ECONNRESET:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "econnreset"));
+    case ENOBUFS:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enobufs"));
+    case EISCONN:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eisconn"));
+    case ENOTCONN:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enotconn"));
+    case ESHUTDOWN:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eshutdown"));
+    case ETOOMANYREFS:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "etoomanyrefs"));
+    case ETIMEDOUT:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "etimedout"));
+    case ECONNREFUSED:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "econnrefused"));
+    case ELOOP:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eloop"));
+    case ENAMETOOLONG:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enametoolong"));
+    case (ZMQ_HAUSNUMERO +  1):
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enotsup"));
+    case (ZMQ_HAUSNUMERO +  2):
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eprotonosupport"));
+    case (ZMQ_HAUSNUMERO +  3):
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enobufs"));
+    case (ZMQ_HAUSNUMERO +  4):
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enetdown"));
+    case (ZMQ_HAUSNUMERO +  5):
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eaddrinuse"));
+    case (ZMQ_HAUSNUMERO +  6):
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eaddrnotavail"));
+    case (ZMQ_HAUSNUMERO +  7):
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "econnrefused"));
+    case (ZMQ_HAUSNUMERO +  8):
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "einprogress"));
+    case (ZMQ_HAUSNUMERO + 51):
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "efsm"));
+    case (ZMQ_HAUSNUMERO + 52):
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "enocompatproto"));
+    case (ZMQ_HAUSNUMERO + 53):
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "eterm"));
+    case (ZMQ_HAUSNUMERO + 54):
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_atom(env, "emthread"));
+    default:
+      return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                              enif_make_int(env, value));
+  }
 }
 
 ERL_NIF_INIT(erlzmq_nif, nif_funcs, &on_load, NULL, NULL, &on_unload);
