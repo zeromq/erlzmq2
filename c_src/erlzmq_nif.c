@@ -732,6 +732,8 @@ static void * polling_thread(void * handle)
                                    r->data.recv.socket->socket_index),
                   enif_make_resource(r->data.recv.env, r->data.recv.socket)),
                 return_zmq_errno(r->data.recv.env, zmq_errno())));
+            enif_free_env(r->data.recv.env);
+            r->data.recv.env = enif_alloc_env();
             item->revents = 0;
           }
           else {
@@ -756,6 +758,8 @@ static void * polling_thread(void * handle)
                                  r->data.recv.socket->socket_index),
                 enif_make_resource(r->data.recv.env, r->data.recv.socket)),
               enif_make_binary(r->data.recv.env, &binary)));
+          enif_free_env(r->data.recv.env);
+          r->data.recv.env = enif_alloc_env();
           item->revents = 0;
         }
         else {
@@ -818,18 +822,18 @@ static void * polling_thread(void * handle)
 
       erlzmq_thread_request_t * r =
         (erlzmq_thread_request_t *) zmq_msg_data(&msg);
-      if (r->type == ERLZMQ_THREAD_REQUEST_RECV) {
-        zmq_pollitem_t item_zmq = {r->data.recv.socket->socket_zmq,
-                                   0, ZMQ_POLLIN, 0};
+      if (r->type == ERLZMQ_THREAD_REQUEST_SEND) {
+        zmq_pollitem_t item_zmq = {r->data.send.socket->socket_zmq,
+                                   0, ZMQ_POLLOUT, 0};
         status = vector_append(zmq_pollitem_t, &items_zmq, &item_zmq);
         assert(status == 0);
         status = vector_append(erlzmq_thread_request_t, &requests, r);
         assert(status == 0);
         zmq_msg_close(&msg);
       }
-      else if (r->type == ERLZMQ_THREAD_REQUEST_SEND) {
-        zmq_pollitem_t item_zmq = {r->data.send.socket->socket_zmq,
-                                   0, ZMQ_POLLOUT, 0};
+      else if (r->type == ERLZMQ_THREAD_REQUEST_RECV) {
+        zmq_pollitem_t item_zmq = {r->data.recv.socket->socket_zmq,
+                                   0, ZMQ_POLLIN, 0};
         status = vector_append(zmq_pollitem_t, &items_zmq, &item_zmq);
         assert(status == 0);
         status = vector_append(erlzmq_thread_request_t, &requests, r);
@@ -844,11 +848,15 @@ static void * polling_thread(void * handle)
             erlzmq_thread_request_t * r_old =
               vector_get(erlzmq_thread_request_t, &requests, i);
             if (r_old->type == ERLZMQ_THREAD_REQUEST_RECV) {
-              enif_free_env(r_old->data.recv.env);
+              enif_clear_env(r_old->data.recv.env);
+              // FIXME
+              // causes crash on R14B01, works fine on R14B02
+              // (repeated enif_send with active receive broken on R14B01)
+              //enif_free_env(r_old->data.recv.env);
               enif_release_resource(r_old->data.recv.socket);
             }
             else if (r_old->type == ERLZMQ_THREAD_REQUEST_SEND) {
-              zmq_msg_close(&r_old->data.send.msg);
+              zmq_msg_close(&(r_old->data.send.msg));
               enif_free_env(r_old->data.send.env);
               enif_release_resource(r_old->data.send.socket);
             }

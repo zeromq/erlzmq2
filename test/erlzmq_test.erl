@@ -145,6 +145,22 @@ ping_pong({S1, S2}, Msg, active) ->
         1000 ->
             ?assertMatch({ok, Msg}, timeout)
     end,
+    ok = erlzmq:send(S1, Msg),
+    receive
+        {zmq, S2, Msg} ->
+            ok
+    after
+        1000 ->
+            ?assertMatch({ok, Msg}, timeout)
+    end,
+    ok = erlzmq:send(S2, Msg),
+    receive
+        {zmq, S1, Msg} ->
+            ok
+    after
+        1000 ->
+            ?assertMatch({ok, Msg}, timeout)
+    end,
     ok;
 ping_pong({S1, S2}, Msg, passive) ->
     ok = erlzmq:send(S1, Msg),
@@ -156,5 +172,8 @@ ping_pong({S1, S2}, Msg, passive) ->
 basic_tests(Transport, Type1, Type2, Mode) ->
     {ok, C} = erlzmq:context(1),
     {S1, S2} = create_bound_pair(C, Type1, Type2, Mode, Transport),
-    ping_pong({S1, S2}, <<"XXX">>, Mode).
+    ping_pong({S1, S2}, <<"XXX">>, Mode),
+    ok = erlzmq:close(S1),
+    ok = erlzmq:close(S2),
+    ok = erlzmq:term(C).
 
