@@ -98,8 +98,9 @@ socket(Context, [H | _] = L) ->
             % active is not used for these socket types
             erlzmq_nif:socket(Context, socket_type(H), 0);
         false ->
-            % active is true by default, like normal Erlang sockets
-            erlzmq_nif:socket(Context, socket_type(H), 1)
+            % active is false by default
+            % (to avoid latency on small messages (messages < 32KB))
+            erlzmq_nif:socket(Context, socket_type(H), 0)
     end.
 
 %% @doc Accept connections on a socket.
