@@ -19,7 +19,7 @@
 <p>An opaque handle to an erlzmq context.</p>
 
 <h3 class="typedecl"><a name="type-erlzmq_data">erlzmq_data()</a></h3>
-<p><tt>erlzmq_data() = <a href="#type-iolist">iolist()</a></tt></p>
+<p><tt>erlzmq_data() = iolist()</tt></p>
 <p>Data to be sent with <a href="erlzmq.html#send-3">send/3</a> or received with
   <a href="erlzmq.html#recv-2">recv/2</a></p>
 
@@ -43,7 +43,7 @@
 <p>Possible error types.</p>
 
 <h3 class="typedecl"><a name="type-erlzmq_send_recv_flag">erlzmq_send_recv_flag()</a></h3>
-<p><tt>erlzmq_send_recv_flag() = noblock | sndmore | recvmore | {timeout, <a href="#type-timeout">timeout()</a>}</tt></p>
+<p><tt>erlzmq_send_recv_flag() = noblock | sndmore | recvmore | {timeout, timeout()}</tt></p>
 <p>The individual flags to use with <a href="erlzmq.html#send-3">send/3</a>
   and <a href="erlzmq.html#recv-2">recv/2</a>.<br>
   <i>For more information see
@@ -51,7 +51,7 @@
   <a href="http://api.zeromq.org/master:zmq_recv">zmq_recv</a></i></p>
 
 <h3 class="typedecl"><a name="type-erlzmq_send_recv_flags">erlzmq_send_recv_flags()</a></h3>
-<p><tt>erlzmq_send_recv_flags() = list(<a href="#type-erlzmq_send_recv_flag">erlzmq_send_recv_flag()</a>)</tt></p>
+<p><tt>erlzmq_send_recv_flags() = [<a href="#type-erlzmq_send_recv_flag">erlzmq_send_recv_flag()</a>]</tt></p>
 <p>A list of flags to use with <a href="ezqm.html#send-3">send/3</a> and
   <a href="erlzmq.html#recv-2">recv/2</a></p>
 
@@ -74,7 +74,7 @@
   and <a href="http://api.zeromq.org/master:zmq_getsockopt">zmq_getsockopt</a></i></p>
 
 <h3 class="typedecl"><a name="type-erlzmq_sockopt_value">erlzmq_sockopt_value()</a></h3>
-<p><tt>erlzmq_sockopt_value() = integer() | <a href="#type-iolist">iolist()</a></tt></p>
+<p><tt>erlzmq_sockopt_value() = integer() | iolist()</tt></p>
 <p>Possible option values for <a href="erlzmq.html#setsockopt-3">setsockopt/3</a>.</p>
 
 <h3 class="typedecl"><a name="type-errno">errno()</a></h3>
@@ -108,7 +108,7 @@
 
 <h3 class="function"><a name="bind-2">bind/2</a></h3>
 <div class="spec">
-<p><tt>bind(X1, Endpoint) -&gt; any()</tt></p>
+<p><tt>bind(SocketTuple::{pos_integer(), <a href="#type-erlzmq_socket">erlzmq_socket()</a>}, Endpoint::<a href="#type-erlzmq_endpoint">erlzmq_endpoint()</a>) -&gt; ok | <a href="#type-erlzmq_error">erlzmq_error()</a></tt><br></p>
 </div><p>Accept connections on a socket.
   <br>
   <i>For more information see
@@ -116,13 +116,13 @@
 
 <h3 class="function"><a name="close-1">close/1</a></h3>
 <div class="spec">
-<p><tt>close(SocketTuple) -&gt; any()</tt></p>
+<p><tt>close(SocketTuple::{pos_integer(), <a href="#type-erlzmq_socket">erlzmq_socket()</a>}) -&gt; ok | <a href="#type-erlzmq_error">erlzmq_error()</a></tt><br></p>
 </div><p>Equivalent to <a href="#close-2"><tt>close(Socket, infinity)</tt></a>.</p>
 
 
 <h3 class="function"><a name="close-2">close/2</a></h3>
 <div class="spec">
-<p><tt>close(X1, Timeout) -&gt; any()</tt></p>
+<p><tt>close(SocketTuple::{pos_integer(), <a href="#type-erlzmq_socket">erlzmq_socket()</a>}, Timeout::timeout()) -&gt; ok | <a href="#type-erlzmq_error">erlzmq_error()</a></tt><br></p>
 </div><p>Close the given socket.
   <br>
   <i>For more information see
@@ -130,7 +130,7 @@
 
 <h3 class="function"><a name="connect-2">connect/2</a></h3>
 <div class="spec">
-<p><tt>connect(X1, Endpoint) -&gt; any()</tt></p>
+<p><tt>connect(SocketTuple::{pos_integer(), <a href="#type-erlzmq_socket">erlzmq_socket()</a>}, Endpoint::<a href="#type-erlzmq_endpoint">erlzmq_endpoint()</a>) -&gt; ok | <a href="#type-erlzmq_error">erlzmq_error()</a></tt><br></p>
 </div><p>Connect a socket.
   <br>
   <i>For more information see
@@ -138,13 +138,13 @@
 
 <h3 class="function"><a name="context-0">context/0</a></h3>
 <div class="spec">
-<p><tt>context() -&gt; any()</tt></p>
+<p><tt>context() -&gt; {ok, <a href="#type-erlzmq_context">erlzmq_context()</a>} | <a href="#type-erlzmq_error">erlzmq_error()</a></tt><br></p>
 </div><p>Equivalent to <a href="#context-1"><tt>context(1)</tt></a>.</p>
 
 
 <h3 class="function"><a name="context-1">context/1</a></h3>
 <div class="spec">
-<p><tt>context(Threads) -&gt; any()</tt></p>
+<p><tt>context(Threads::pos_integer()) -&gt; {ok, <a href="#type-erlzmq_context">erlzmq_context()</a>} | <a href="#type-erlzmq_error">erlzmq_error()</a></tt><br></p>
 </div><p>Create a new erlzmq context with the specified number of io threads.
   <br>
   If the context can be created an 'ok' tuple containing an
@@ -159,7 +159,7 @@
 
 <h3 class="function"><a name="getsockopt-2">getsockopt/2</a></h3>
 <div class="spec">
-<p><tt>getsockopt(X1, Name) -&gt; any()</tt></p>
+<p><tt>getsockopt(SocketTuple::{pos_integer(), <a href="#type-erlzmq_socket">erlzmq_socket()</a>}, Name::<a href="#type-erlzmq_sockopt">erlzmq_sockopt()</a>) -&gt; {ok, <a href="#type-erlzmq_sockopt_value">erlzmq_sockopt_value()</a>} | <a href="#type-erlzmq_error">erlzmq_error()</a></tt><br></p>
 </div><p>Get an <a href="#type-erlzmq_sockopt">option</a> associated with a socket.
   <br>
   <i>For more information see
@@ -167,13 +167,13 @@
 
 <h3 class="function"><a name="recv-1">recv/1</a></h3>
 <div class="spec">
-<p><tt>recv(SocketTuple) -&gt; any()</tt></p>
+<p><tt>recv(SocketTuple::{pos_integer(), <a href="#type-erlzmq_socket">erlzmq_socket()</a>}) -&gt; {ok, <a href="#type-erlzmq_data">erlzmq_data()</a>} | <a href="#type-erlzmq_error">erlzmq_error()</a></tt><br></p>
 </div><p>Equivalent to <a href="#recv-2"><tt>recv(Socket, 0)</tt></a>.</p>
 
 
 <h3 class="function"><a name="recv-2">recv/2</a></h3>
 <div class="spec">
-<p><tt>recv(X1, Flags) -&gt; any()</tt></p>
+<p><tt>recv(SocketTuple::{pos_integer(), <a href="#type-erlzmq_socket">erlzmq_socket()</a>}, Flags::<a href="#type-erlzmq_send_recv_flags">erlzmq_send_recv_flags()</a>) -&gt; {ok, <a href="#type-erlzmq_data">erlzmq_data()</a>} | <a href="#type-erlzmq_error">erlzmq_error()</a> | {error, {timeout, reference()}}</tt><br></p>
 </div><p>Receive a message from a socket.
   <br>
   <i>For more information see
@@ -181,13 +181,13 @@
 
 <h3 class="function"><a name="send-2">send/2</a></h3>
 <div class="spec">
-<p><tt>send(SocketTuple, Binary) -&gt; any()</tt></p>
+<p><tt>send(SocketTuple::{pos_integer(), <a href="#type-erlzmq_socket">erlzmq_socket()</a>}, Data::<a href="#type-erlzmq_data">erlzmq_data()</a>) -&gt; ok | <a href="#type-erlzmq_error">erlzmq_error()</a></tt><br></p>
 </div><p>Equivalent to <a href="#send-3"><tt>send(Socket, Msg, [])</tt></a>.</p>
 
 
 <h3 class="function"><a name="send-3">send/3</a></h3>
 <div class="spec">
-<p><tt>send(X1, Binary, Flags) -&gt; any()</tt></p>
+<p><tt>send(SocketTuple::{pos_integer(), <a href="#type-erlzmq_socket">erlzmq_socket()</a>}, Data::<a href="#type-erlzmq_data">erlzmq_data()</a>, Flags::<a href="#type-erlzmq_send_recv_flags">erlzmq_send_recv_flags()</a>) -&gt; ok | <a href="#type-erlzmq_error">erlzmq_error()</a></tt><br></p>
 </div><p>Send a message on a socket.
   <br>
   <i>For more information see
@@ -195,7 +195,7 @@
 
 <h3 class="function"><a name="setsockopt-3">setsockopt/3</a></h3>
 <div class="spec">
-<p><tt>setsockopt(SocketTuple, Name, Value) -&gt; any()</tt></p>
+<p><tt>setsockopt(SocketTuple::{pos_integer(), <a href="#type-erlzmq_socket">erlzmq_socket()</a>}, Name::<a href="#type-erlzmq_sockopt">erlzmq_sockopt()</a>, Value::<a href="#type-erlzmq_sockopt_value">erlzmq_sockopt_value()</a>) -&gt; ok | <a href="#type-erlzmq_error">erlzmq_error()</a></tt><br></p>
 </div><p>Set an <a href="#type-erlzmq_sockopt">option</a> associated with a socket.
   <br>
   <i>For more information see
@@ -203,12 +203,12 @@
 
 <h3 class="function"><a name="socket-2">socket/2</a></h3>
 <div class="spec">
-<p><tt>socket(Context, Type) -&gt; any()</tt></p>
+<p><tt>socket(Context::<a href="#type-erlzmq_context">erlzmq_context()</a>, Type::<a href="#type-erlzmq_socket_type">erlzmq_socket_type()</a> | [<a href="#type-erlzmq_socket_type">erlzmq_socket_type()</a> | {active, boolean()}]) -&gt; {ok, {pos_integer(), <a href="#type-erlzmq_socket">erlzmq_socket()</a>}} | <a href="#type-erlzmq_error">erlzmq_error()</a></tt><br></p>
 </div><p>Create a socket.
   <br>
   This functions creates a socket of the given
-  <a href="#type-erlzmq_socket_type">type</a> and associates it with the given
-  <a href="#type-erlzmq_context">context</a>.
+  <a href="#type-erlzmq_socket_type">type</a>, optionally setting it to active mode,
+  and associates it with the given <a href="#type-erlzmq_context">context</a>.
   <br>
   If the socket can be created an 'ok' tuple containing a
   <code><a href="#type-erlzmq_socket">erlzmq_socket()</a></code> handle to the created socket is returned;
@@ -218,19 +218,19 @@
   passive. Passive sockets tend to have lower latency and have a higher
   throughput for small message sizes. Active sockets on the contrary give
   the highest throughput for messages above 32k. A benchmarking tool is
-  included in the source distribution.
+  included in the source distribution.<br>
   <i>For more information see
   <a href="http://api.zeromq.org/master:zmq_socket">zmq_socket</a>.</i></p>
 
 <h3 class="function"><a name="term-1">term/1</a></h3>
 <div class="spec">
-<p><tt>term(Context) -&gt; any()</tt></p>
+<p><tt>term(Context::<a href="#type-erlzmq_context">erlzmq_context()</a>) -&gt; ok | <a href="#type-erlzmq_error">erlzmq_error()</a></tt><br></p>
 </div><p>Equivalent to <a href="#term-2"><tt>term(Context, infinity)</tt></a>.</p>
 
 
 <h3 class="function"><a name="term-2">term/2</a></h3>
 <div class="spec">
-<p><tt>term(Context, Timeout) -&gt; any()</tt></p>
+<p><tt>term(Context::<a href="#type-erlzmq_context">erlzmq_context()</a>, Timeout::timeout()) -&gt; ok | <a href="#type-erlzmq_error">erlzmq_error()</a> | {error, {timeout, reference()}}</tt><br></p>
 </div><p>Terminate the given context waiting up to Timeout ms.
   <br>
   This function should be called after all sockets associated with
@@ -241,6 +241,6 @@
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
-<p><i>Generated by EDoc, Mar 30 2011, 16:01:48.</i></p>
+<p><i>Generated by EDoc, Mar 30 2011, 17:26:54.</i></p>
 </body>
 </html>
