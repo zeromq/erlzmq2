@@ -70,8 +70,8 @@ context(Threads) when is_integer(Threads) ->
 %% @doc Create a socket.
 %% <br />
 %% This functions creates a socket of the given
-%% {@link erlzmq_socket_type(). type} and associates it with the given
-%% {@link erlzmq_context(). context}.
+%% {@link erlzmq_socket_type(). type}, optionally setting it to active mode,
+%% and associates it with the given {@link erlzmq_context(). context}.
 %% <br />
 %% If the socket can be created an 'ok' tuple containing a
 %% {@type erlzmq_socket()} handle to the created socket is returned;
@@ -81,7 +81,7 @@ context(Threads) when is_integer(Threads) ->
 %% passive. Passive sockets tend to have lower latency and have a higher
 %% throughput for small message sizes. Active sockets on the contrary give
 %% the highest throughput for messages above 32k. A benchmarking tool is
-%% included in the source distribution.
+%% included in the source distribution.<br />
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_socket">zmq_socket</a>.</i>
 %% @end
