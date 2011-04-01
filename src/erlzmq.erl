@@ -89,8 +89,8 @@ context(Threads) when is_integer(Threads) ->
              Type :: erlzmq_socket_type() |
                      list(erlzmq_socket_type() |
                           {active, boolean()})) ->
-    {ok, {pos_integer(), erlzmq_socket()}} |
-    erlzmq_error().
+                    {ok, erlzmq_socket()} |
+                    erlzmq_error().
 socket(Context, Type) when is_atom(Type) ->
     socket(Context, [Type]);
 socket(Context, [H | _] = L) ->
@@ -114,7 +114,7 @@ socket(Context, [H | _] = L) ->
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_bind">zmq_bind</a>.</i>
 %% @end
--spec bind(SocketTuple :: {pos_integer(), erlzmq_socket()},
+-spec bind(Socket :: erlzmq_socket(),
            Endpoint :: erlzmq_endpoint()) ->
     ok |
     erlzmq_error().
@@ -127,7 +127,7 @@ bind({I, Socket}, Endpoint)
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_connect">zmq_connect</a>.</i>
 %% @end
--spec connect(SocketTuple :: {pos_integer(), erlzmq_socket()},
+-spec connect(Socket :: erlzmq_socket(),
               Endpoint :: erlzmq_endpoint()) ->
     ok |
     erlzmq_error().
@@ -136,19 +136,19 @@ connect({I, Socket}, Endpoint)
     erlzmq_nif:connect(Socket, Endpoint).
 
 %% @equiv send(Socket, Msg, [])
--spec send(SocketTuple :: {pos_integer(), erlzmq_socket()},
+-spec send(Socket :: erlzmq_socket(),
            Data :: erlzmq_data()) ->
     ok |
     erlzmq_error().
-send(SocketTuple, Binary) when is_binary(Binary) ->
-    send(SocketTuple, Binary, []).
+send(Socket, Binary) when is_binary(Binary) ->
+    send(Socket, Binary, []).
 
 %% @doc Send a message on a socket.
 %% <br />
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_send">zmq_send</a>.</i>
 %% @end
--spec send(SocketTuple :: {pos_integer(), erlzmq_socket()},
+-spec send(Socket :: erlzmq_socket(),
            Data :: erlzmq_data(),
            Flags :: erlzmq_send_recv_flags()) ->
     ok |
@@ -168,18 +168,18 @@ send({I, Socket}, Binary, Flags)
     end.
 
 %% @equiv recv(Socket, 0)
--spec recv(SocketTuple :: {pos_integer(), erlzmq_socket()}) ->
+-spec recv(Socket :: erlzmq_socket()) ->
     {ok, erlzmq_data()} |
     erlzmq_error().
-recv(SocketTuple) ->
-    recv(SocketTuple, []).
+recv(Socket) ->
+    recv(Socket, []).
 
 %% @doc Receive a message from a socket.
 %% <br />
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_recv">zmq_recv</a>.</i>
 %% @end
--spec recv(SocketTuple :: {pos_integer(), erlzmq_socket()},
+-spec recv(Socket :: erlzmq_socket(),
            Flags :: erlzmq_send_recv_flags()) ->
     {ok, erlzmq_data()} |
     erlzmq_error() |
@@ -204,13 +204,13 @@ recv({I, Socket}, Flags)
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_setsockopt">zmq_setsockopt</a>.</i>
 %% @end
--spec setsockopt(SocketTuple :: {pos_integer(), erlzmq_socket()},
+-spec setsockopt(Socket :: erlzmq_socket(),
                  Name :: erlzmq_sockopt(),
                  erlzmq_sockopt_value()) ->
     ok |
     erlzmq_error().
-setsockopt(SocketTuple, Name, Value) when is_list(Value) ->
-    setsockopt(SocketTuple, Name, erlang:list_to_binary(Value));
+setsockopt(Socket, Name, Value) when is_list(Value) ->
+    setsockopt(Socket, Name, erlang:list_to_binary(Value));
 setsockopt({I, Socket}, Name, Value) when is_integer(I), is_atom(Name) ->
     erlzmq_nif:setsockopt(Socket, option_name(Name), Value).
 
@@ -219,7 +219,7 @@ setsockopt({I, Socket}, Name, Value) when is_integer(I), is_atom(Name) ->
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_getsockopt">zmq_getsockopt</a>.</i>
 %% @end
--spec getsockopt(SocketTuple :: {pos_integer(), erlzmq_socket()},
+-spec getsockopt(Socket :: erlzmq_socket(),
                  Name :: erlzmq_sockopt()) ->
     {ok, erlzmq_sockopt_value()} |
     erlzmq_error().
@@ -227,18 +227,18 @@ getsockopt({I, Socket}, Name) when is_integer(I), is_atom(Name) ->
     erlzmq_nif:getsockopt(Socket, option_name(Name)).
 
 %% @equiv close(Socket, infinity)
--spec close(SocketTuple :: {pos_integer(), erlzmq_socket()}) ->
+-spec close(Socket :: erlzmq_socket()) ->
     ok |
     erlzmq_error().
-close(SocketTuple) ->
-    close(SocketTuple, infinity).
+close(Socket) ->
+    close(Socket, infinity).
 
 %% @doc Close the given socket.
 %% <br />
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_close">zmq_close</a>.</i>
 %% @end
--spec close(SocketTuple :: {pos_integer(), erlzmq_socket()},
+-spec close(Socket :: erlzmq_socket(),
             Timeout :: timeout()) ->
     ok |
     erlzmq_error().

@@ -106,7 +106,7 @@
 
 %% @type erlzmq_socket() = binary().
 %% An opaque handle to an erlzmq socket.
--opaque erlzmq_socket() :: binary().
+-opaque erlzmq_socket() :: {pos_integer(), binary()}.
 
 %% @type erlzmq_send_recv_flag() = noblock | sndmore | recvmore | {timeout, timeout()}.
 %% The individual flags to use with {@link erlzmq:send/3. send/3}
