@@ -7,15 +7,16 @@ else
 ZMQ_FLAGS=
 endif
 
-ifeq ($(ZEROMQ_VERSION),"")
-ZEROMQ_VERSION=master
+ifndef ZEROMQ_VERSION
+ZEROMQ_VERSION=v2.1.4
 endif
 
 all: perf
 
 deps/zeromq2:
 	@mkdir -p deps
-	@git clone git://github.com/zeromq/zeromq2.git deps/zeromq2
+	@git clone git://github.com/zeromq/zeromq2-1.git deps/zeromq2
+	@echo $(ZEROMQ_VERSION)
 	@cd deps/zeromq2 && git checkout $(ZEROMQ_VERSION)
 
 deps/zeromq2/src/.libs/libzmq.a: deps/zeromq2
