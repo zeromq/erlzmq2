@@ -83,10 +83,10 @@ shutdown_blocking_test() ->
 shutdown_blocking_unblocking_test() ->
     {ok, C} = erlzmq:context(),
     {ok, S} = erlzmq:socket(C, [pub, {active, false}]),
-    erlzmq:close(S),
-    V = erlzmq:term(C, 0),
+    V = erlzmq:term(C, 500),
     ?assertMatch({error, {timeout, _}}, V),
     {error, {timeout, Ref}} = V,
+    erlzmq:close(S),
     receive 
         {Ref, ok} ->
             ok
