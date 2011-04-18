@@ -922,6 +922,7 @@ static void * polling_thread(void * handle)
       else if (r->type == ERLZMQ_THREAD_REQUEST_TERM) {
         enif_mutex_lock(context->mutex);
         free(context->thread_socket_name);
+        // use this to flag context is over
         context->thread_socket_name = NULL;
         enif_mutex_unlock(context->mutex);
         // cleanup pending requests
@@ -946,6 +947,8 @@ static void * polling_thread(void * handle)
         zmq_close(context->thread_socket);
         enif_mutex_unlock(context->mutex);
         zmq_term(context->context_zmq);
+        enif_mutex_lock(context->mutex);
+        enif_mutex_unlock(context->mutex);
         enif_mutex_destroy(context->mutex);
         enif_release_resource(context);
         // notify the waiting request
