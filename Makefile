@@ -8,7 +8,7 @@ ZMQ_FLAGS=
 endif
 
 ifndef ZEROMQ_VERSION
-ZEROMQ_VERSION=v2.1.4
+ZEROMQ_VERSION=v2.1.7
 endif
 
 all: perf
