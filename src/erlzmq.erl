@@ -307,8 +307,12 @@ socket_type(req) ->
     ?'ZMQ_REQ';
 socket_type(rep) ->
     ?'ZMQ_REP';
+socket_type(dealer) ->
+    ?'ZMQ_DEALER';
 socket_type(xreq) ->
     ?'ZMQ_XREQ';
+socket_type(router) ->
+    ?'ZMQ_ROUTER';
 socket_type(xrep) ->
     ?'ZMQ_XREP';
 socket_type(pull) ->
