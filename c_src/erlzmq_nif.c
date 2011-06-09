@@ -136,7 +136,9 @@ NIF(erlzmq_nif_context)
                                                    sizeof(erlzmq_context_t));
   assert(context);
   context->context_zmq = zmq_init(thread_count);
-  assert(context->context_zmq);
+  if (!context->context_zmq) {
+    return return_zmq_errno(env, zmq_errno());
+  }
 
   char thread_socket_id[64];
   sprintf(thread_socket_id, "inproc://erlzmq-%ld", (long int) context);
@@ -195,7 +197,9 @@ NIF(erlzmq_nif_socket)
   socket->context = context;
   socket->socket_index = context->socket_index++;
   socket->socket_zmq = zmq_socket(context->context_zmq, socket_type);
-  assert(socket->socket_zmq);
+  if (!socket->socket_zmq) {
+    return return_zmq_errno(env, zmq_errno());
+  }
   socket->active = active;
   socket->mutex = enif_mutex_create("erlzmq_socket_t_mutex");
   assert(socket->mutex);
