@@ -58,6 +58,9 @@ reqrep_tcp_test() ->
 shutdown_stress_test() ->
     ?assertMatch(ok, shutdown_stress_loop(10)).
 
+version_test() ->
+    ?assertEqual({2, 1, 7}, erlzmq:version()).
+
 shutdown_stress_loop(0) ->
     ok;
 shutdown_stress_loop(N) ->

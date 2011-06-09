@@ -38,7 +38,8 @@
          close/1,
          close/2,
          term/1,
-         term/2]).
+         term/2,
+         version/0]).
 -export_type([erlzmq_socket/0, erlzmq_context/0]).
 
 %% @equiv context(1)
@@ -291,6 +292,11 @@ term(Context, Timeout) ->
             Result
     end.
 
+%% @doc Returns the 0MQ library version.
+%% @end
+-spec version() -> {integer(), integer(), integer()}.
+
+version() -> erlzmq_nif:version().
 
 %% Private
 
