@@ -15,7 +15,7 @@ hwm_test() ->
 
     ok = hwm_loop(10, S2),
 
-    ?assertMatch({ok, <<"test">>, _Flags}, erlzmq:recv(S1)),
+    ?assertMatch({ok, <<"test">>}, erlzmq:recv(S1)),
     ?assertMatch(ok, erlzmq:send(S2, <<"test">>)),
     ok = erlzmq:close(S1),
     ok = erlzmq:close(S2),
@@ -173,13 +173,13 @@ ping_pong({S1, S2}, Msg, active) ->
     
 ping_pong({S1, S2}, Msg, passive) ->
     ok = erlzmq:send(S1, Msg),
-    ?assertMatch({ok, Msg, []}, erlzmq:recv(S2)),
+    ?assertMatch({ok, Msg}, erlzmq:recv(S2)),
     ok = erlzmq:send(S2, Msg),
-    ?assertMatch({ok, Msg, []}, erlzmq:recv(S1)),
+    ?assertMatch({ok, Msg}, erlzmq:recv(S1)),
     ok = erlzmq:send(S1, Msg, [sndmore]),
     ok = erlzmq:send(S1, Msg),
-    ?assertMatch({ok, Msg, [rcvmore]}, erlzmq:recv(S2)),
-    ?assertMatch({ok, Msg, []}, erlzmq:recv(S2)),
+    ?assertMatch({ok, Msg}, erlzmq:recv(S2)),
+    ?assertMatch({ok, Msg}, erlzmq:recv(S2)),
     ok.
 
 basic_tests(Transport, Type1, Type2, Mode) ->
