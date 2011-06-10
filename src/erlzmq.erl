@@ -190,8 +190,8 @@ recv({I, Socket}, Flags)
         Ref when is_reference(Ref) ->
             Timeout = proplists:get_value(timeout, Flags, infinity),
             receive
-                {Ref, Result, Flag} ->
-                    {ok, Result, Flag}
+                {Ref, Result} ->
+                    {ok, Result}
             after Timeout ->
                     {error, {timeout, Ref}}
             end;
