@@ -539,6 +539,9 @@ NIF(erlzmq_nif_recv)
 {
   erlzmq_thread_request_t req;
   erlzmq_socket_t * socket;
+  ERL_NIF_TERM flags_list;
+  size_t value_len = sizeof(int64_t);
+  int64_t flag_value = 0;
 
   if (! enif_get_resource(env, argv[0], erlzmq_nif_resource_socket,
                           (void **) &socket)) {
@@ -606,7 +609,17 @@ NIF(erlzmq_nif_recv)
     }
   }
   else {
+    if(zmq_getsockopt(socket->socket_zmq, ZMQ_RCVMORE, &flag_value, &value_len)) {
+      return return_zmq_errno(env, zmq_errno());
+    }
     enif_mutex_unlock(socket->mutex);
+    
+    // Should we send the multipart flag
+    if(flag_value == 1) {
+      flags_list = enif_make_list1(env, enif_make_atom(env, "rcvmore"));
+    } else {
+      flags_list = enif_make_list(env, 0);
+    }
 
     ErlNifBinary binary;
     enif_alloc_binary(zmq_msg_size(&msg), &binary);
@@ -614,8 +627,8 @@ NIF(erlzmq_nif_recv)
   
     zmq_msg_close(&msg);
   
-    return enif_make_tuple2(env, enif_make_atom(env, "ok"),
-                            enif_make_binary(env, &binary));
+    return enif_make_tuple3(env, enif_make_atom(env, "ok"),
+                            enif_make_binary(env, &binary), flags_list);
   }
 }
 
@@ -749,6 +762,9 @@ static void * polling_thread(void * handle)
       erlzmq_thread_request_t * r = vector_get(erlzmq_thread_request_t,
                                                &requests, i);
       if (item->revents & ZMQ_POLLIN) {
+        size_t value_len = sizeof(int64_t);
+        int64_t flag_value = 0;
+        
         assert(r->type == ERLZMQ_THREAD_REQUEST_RECV);
         --count;
 
@@ -756,7 +772,9 @@ static void * polling_thread(void * handle)
         zmq_msg_init(&msg);
         enif_mutex_lock(r->data.recv.socket->mutex);
         if (zmq_recv(r->data.recv.socket->socket_zmq, &msg,
-                     r->data.recv.flags))
+                     r->data.recv.flags) ||
+            zmq_getsockopt(r->data.recv.socket->socket_zmq, 
+                    ZMQ_RCVMORE, &flag_value, &value_len) )
         {
           enif_mutex_unlock(r->data.recv.socket->mutex);
           if (r->data.recv.socket->active == ERLZMQ_SOCKET_ACTIVE_ON) {
@@ -784,25 +802,35 @@ static void * polling_thread(void * handle)
         enif_alloc_binary(zmq_msg_size(&msg), &binary);
         memcpy(binary.data, zmq_msg_data(&msg), zmq_msg_size(&msg));
         zmq_msg_close(&msg);
+        ERL_NIF_TERM flags_list;
+
+        // Should we send the multipart flag
+        if(flag_value == 1) {
+          flags_list = enif_make_list1(r->data.recv.env, enif_make_atom(r->data.recv.env, "rcvmore"));
+        } else {
+          flags_list = enif_make_list(r->data.recv.env, 0);
+        }
 
         if (r->data.recv.socket->active == ERLZMQ_SOCKET_ACTIVE_ON) {
           enif_send(NULL, &r->data.recv.pid, r->data.recv.env,
-            enif_make_tuple3(r->data.recv.env,
+            enif_make_tuple4(r->data.recv.env,
               enif_make_atom(r->data.recv.env, "zmq"),
               enif_make_tuple2(r->data.recv.env,
                 enif_make_uint64(r->data.recv.env,
                                  r->data.recv.socket->socket_index),
                 enif_make_resource(r->data.recv.env, r->data.recv.socket)),
-              enif_make_binary(r->data.recv.env, &binary)));
+              enif_make_binary(r->data.recv.env, &binary),
+              flags_list));
           enif_free_env(r->data.recv.env);
           r->data.recv.env = enif_alloc_env();
           item->revents = 0;
         }
         else {
           enif_send(NULL, &r->data.recv.pid, r->data.recv.env,
-            enif_make_tuple2(r->data.recv.env,
+            enif_make_tuple3(r->data.recv.env,
               enif_make_copy(r->data.recv.env, r->data.recv.ref),
-              enif_make_binary(r->data.recv.env, &binary)));
+              enif_make_binary(r->data.recv.env, &binary),
+              flags_list));
 
           enif_free_env(r->data.recv.env);
           enif_release_resource(r->data.recv.socket);
