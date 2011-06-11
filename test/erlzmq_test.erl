@@ -132,9 +132,17 @@ create_bound_pair(Ctx, Type1, Type2, Mode, Transport) ->
     {S1, S2}.
 
 ping_pong({S1, S2}, Msg, active) ->
+    ok = erlzmq:send(S1, Msg, [sndmore]),
     ok = erlzmq:send(S1, Msg),
     receive
-        {zmq, S2, Msg} ->
+        {zmq, S2, Msg, [rcvmore]} ->
+            ok
+    after
+        1000 ->
+            ?assertMatch({ok, Msg}, timeout)
+    end,
+    receive
+        {zmq, S2, Msg, []} ->
             ok
     after
         1000 ->
@@ -142,7 +150,7 @@ ping_pong({S1, S2}, Msg, active) ->
     end,
     ok = erlzmq:send(S2, Msg),
     receive
-        {zmq, S1, Msg} ->
+        {zmq, S1, Msg, []} ->
             ok
     after
         1000 ->
@@ -150,7 +158,7 @@ ping_pong({S1, S2}, Msg, active) ->
     end,
     ok = erlzmq:send(S1, Msg),
     receive
-        {zmq, S2, Msg} ->
+        {zmq, S2, Msg, []} ->
             ok
     after
         1000 ->
@@ -158,18 +166,23 @@ ping_pong({S1, S2}, Msg, active) ->
     end,
     ok = erlzmq:send(S2, Msg),
     receive
-        {zmq, S1, Msg} ->
+        {zmq, S1, Msg, []} ->
             ok
     after
         1000 ->
             ?assertMatch({ok, Msg}, timeout)
     end,
     ok;
+    
 ping_pong({S1, S2}, Msg, passive) ->
     ok = erlzmq:send(S1, Msg),
     ?assertMatch({ok, Msg}, erlzmq:recv(S2)),
     ok = erlzmq:send(S2, Msg),
     ?assertMatch({ok, Msg}, erlzmq:recv(S1)),
+    ok = erlzmq:send(S1, Msg, [sndmore]),
+    ok = erlzmq:send(S1, Msg),
+    ?assertMatch({ok, Msg}, erlzmq:recv(S2)),
+    ?assertMatch({ok, Msg}, erlzmq:recv(S2)),
     ok.
 
 basic_tests(Transport, Type1, Type2, Mode) ->
