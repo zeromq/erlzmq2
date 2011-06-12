@@ -55,6 +55,9 @@ reqrep_tcp_test() ->
     basic_tests("tcp://127.0.0.1:5556", req, rep, active),
     basic_tests("tcp://127.0.0.1:5557", req, rep, passive).
 
+bad_init_test() ->
+    ?assertEqual({error, einval}, erlzmq:context(-1)).
+
 shutdown_stress_test() ->
     ?assertMatch(ok, shutdown_stress_loop(10)).
 
