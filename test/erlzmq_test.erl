@@ -59,7 +59,8 @@ shutdown_stress_test() ->
     ?assertMatch(ok, shutdown_stress_loop(10)).
 
 version_test() ->
-    ?assertEqual({2, 1, 7}, erlzmq:version()).
+    {Major, Minor, Patch} = erlzmq:version(),
+    ?assert(is_integer(Major) andalso is_integer(Minor) andalso is_integer(Patch)).
 
 shutdown_stress_loop(0) ->
     ok;
