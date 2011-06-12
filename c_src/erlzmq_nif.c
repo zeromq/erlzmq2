@@ -105,6 +105,7 @@ NIF(erlzmq_nif_send);
 NIF(erlzmq_nif_recv);
 NIF(erlzmq_nif_close);
 NIF(erlzmq_nif_term);
+NIF(erlzmq_nif_version);
 
 static void * polling_thread(void * handle);
 static ERL_NIF_TERM add_active_req(ErlNifEnv* env, erlzmq_socket_t * socket);
@@ -121,7 +122,8 @@ static ErlNifFunc nif_funcs[] =
   {"send", 3, erlzmq_nif_send},
   {"recv", 2, erlzmq_nif_recv},
   {"close", 1, erlzmq_nif_close},
-  {"term", 1, erlzmq_nif_term}
+  {"term", 1, erlzmq_nif_term},
+  {"version", 0, erlzmq_nif_version}
 };
 
 NIF(erlzmq_nif_context)
@@ -707,6 +709,15 @@ NIF(erlzmq_nif_term)
     enif_release_resource(context);
     return enif_make_copy(env, req.data.term.ref);
   }
+}
+
+NIF(erlzmq_nif_version)
+{
+  int major, minor, patch;
+  zmq_version(&major, &minor, &patch);
+  return enif_make_tuple3(env, enif_make_int(env, major),
+                          enif_make_int(env, minor),
+                          enif_make_int(env, patch));
 }
 
 static void * polling_thread(void * handle)
