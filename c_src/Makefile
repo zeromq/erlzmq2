@@ -19,6 +19,7 @@ clean:
 distclean:
 	@rm -rf $(DEPS)
 
+ifndef ZEROMQ_LIB
 $(DEPS)/zeromq2:
 	@mkdir $(DEPS)
 	@git clone git://github.com/zeromq/zeromq2-1.git $(DEPS)/zeromq2
@@ -27,3 +28,10 @@ $(DEPS)/zeromq2:
 
 $(DEPS)/zeromq2/src/.libs/libzmq.a: $(DEPS)/zeromq2
 	@cd $(DEPS)/zeromq2 && ./autogen.sh && ./configure $(ZMQ_FLAGS) && make
+
+else
+
+$(DEPS)/zeromq2/src/.libs/libzmq.a:
+	@mkdir -p $(DEPS)/zeromq2/src/.libs/
+	@ln -s $(ZEROMQ_LIB) $(DEPS)/zeromq2/src/.libs/libzmq.a
+endif
