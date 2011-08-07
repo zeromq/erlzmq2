@@ -297,6 +297,9 @@ term(Context, Timeout) ->
     end.
 
 %% @doc Returns the 0MQ library version.
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/master:zmq_version">zmq_version</a>.</i>
 %% @end
 -spec version() -> {integer(), integer(), integer()}.
 
