@@ -15,7 +15,7 @@ Downloading
 
 The erlzmq2 source code can be found on [GitHub](https://github.com/yrashk/erlzmq2)
 
-    $ git clone http://github.com/yrashk/erlzmq2.git
+    $ git clone http://github.com/zeromq/erlzmq2.git
 
 It is also available on [Agner](http://erlagner.org/):
 
