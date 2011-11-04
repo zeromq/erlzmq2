@@ -14,7 +14,11 @@ endif
 all: $(DEPS)/zeromq2/src/.libs/libzmq.a
 
 clean:
-	@cd $(DEPS)/zeromq2; make clean
+	if test -e $(DEPS)/zeromq2/Makefile; then \
+		cd $(DEPS)/zeromq2; make clean; \
+	else \
+		true; \
+	fi
 
 distclean:
 	@rm -rf $(DEPS)
