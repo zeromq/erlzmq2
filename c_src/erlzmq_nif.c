@@ -394,6 +394,7 @@ NIF(erlzmq_nif_getsockopt)
     case ZMQ_RECOVERY_IVL:
     case ZMQ_RECOVERY_IVL_MSEC:
     case ZMQ_MCAST_LOOP:
+      option_len = sizeof(value_int64);
       enif_mutex_lock(socket->mutex);
       if (zmq_getsockopt(socket->socket_zmq, option_name,
                          &value_int64, &option_len)) {
@@ -408,6 +409,7 @@ NIF(erlzmq_nif_getsockopt)
     case ZMQ_AFFINITY:
     case ZMQ_SNDBUF:
     case ZMQ_RCVBUF:
+      option_len = sizeof(value_uint64);
       enif_mutex_lock(socket->mutex);
       if (zmq_getsockopt(socket->socket_zmq, option_name,
                          &value_uint64, &option_len)) {
@@ -419,6 +421,7 @@ NIF(erlzmq_nif_getsockopt)
                               enif_make_uint64(env, value_uint64));
     // binary
     case ZMQ_IDENTITY:
+      option_len = sizeof(option_value);
       enif_mutex_lock(socket->mutex);
       if (zmq_getsockopt(socket->socket_zmq, option_name,
                          option_value, &option_len)) {
@@ -437,6 +440,7 @@ NIF(erlzmq_nif_getsockopt)
     case ZMQ_RECONNECT_IVL_MAX:
     case ZMQ_BACKLOG:
     case ZMQ_FD:   // FIXME: ZMQ_FD returns SOCKET on Windows
+      option_len = sizeof(value_int);
       enif_mutex_lock(socket->mutex);
       if (zmq_getsockopt(socket->socket_zmq, option_name,
                          &value_int, &option_len)) {
