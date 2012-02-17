@@ -45,7 +45,7 @@
 %% Possible types for an erlzmq socket.<br />
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_socket">zmq_socket</a></i>
--type erlzmq_socket_type() :: pair | pub | sub | req | rep | xreq | xrep |
+-type erlzmq_socket_type() :: pair | pub | sub | req | rep | dealer | router | xreq | xrep |
                             pull | push | xpub | xsub.
 
 %% @type erlzmq_endpoint() = string().

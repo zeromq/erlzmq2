@@ -94,21 +94,29 @@ context(Threads) when is_integer(Threads) ->
                     erlzmq_error().
 socket(Context, Type) when is_atom(Type) ->
     socket(Context, [Type]);
-socket(Context, [H | _] = L) ->
-    case lists:keytake(active, 1, L) of
-        {value, {active, Active}, [Type]} when Active =:= true ->
-            true = (Type =/= pub) and (Type =/= push) and (Type =/= xpub),
-            erlzmq_nif:socket(Context, socket_type(Type), 1);
-        {value, {active, Active}, [Type]} when Active =:= false ->
-            erlzmq_nif:socket(Context, socket_type(Type), 0);
-        false when H =:= pub; H =:= push; H =:= xpub ->
-            % active is not used for these socket types
-            erlzmq_nif:socket(Context, socket_type(H), 0);
-        false ->
+socket(Context, [H | T]) when is_atom(H) ->
+    case T of
+        [] ->
             % active is false by default
             % (to avoid latency on small messages (messages < 32KB))
-            erlzmq_nif:socket(Context, socket_type(H), 0)
-    end.
+            socket(Context, H, {active, false});
+        [Active] ->
+            socket(Context, H, Active)
+    end;
+socket(Context, [H | [Type]]) when is_tuple(H) ->
+    socket(Context, Type, H).
+
+-spec socket(Context :: erlzmq_context(),
+             Type :: erlzmq_socket_type(),
+             {active, boolean()}) ->
+                    {ok, erlzmq_socket()} |
+                    erlzmq_error().
+socket(Context, Type, {active, true}) ->
+    true = (Type =/= pub) and (Type =/= push) and (Type =/= xpub),
+    erlzmq_nif:socket(Context, socket_type(Type), 1);
+socket(Context, Type, {active, false}) ->
+    erlzmq_nif:socket(Context, socket_type(Type), 0).
+    
 
 %% @doc Accept connections on a socket.
 %% <br />
@@ -137,8 +145,8 @@ connect({I, Socket}, Endpoint)
     erlzmq_nif:connect(Socket, Endpoint).
 
 %% @equiv send(Socket, Msg, [])
--spec send(Socket :: erlzmq_socket(),
-           Data :: erlzmq_data()) ->
+-spec send(erlzmq_socket(),
+           Binary :: binary()) ->
     ok |
     erlzmq_error().
 send(Socket, Binary) when is_binary(Binary) ->
@@ -149,8 +157,8 @@ send(Socket, Binary) when is_binary(Binary) ->
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_send">zmq_send</a>.</i>
 %% @end
--spec send(Socket :: erlzmq_socket(),
-           Data :: erlzmq_data(),
+-spec send(erlzmq_socket(),
+           Binary :: binary(),
            Flags :: erlzmq_send_recv_flags()) ->
     ok |
     erlzmq_error().
@@ -205,9 +213,9 @@ recv({I, Socket}, Flags)
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_setsockopt">zmq_setsockopt</a>.</i>
 %% @end
--spec setsockopt(Socket :: erlzmq_socket(),
+-spec setsockopt(erlzmq_socket(),
                  Name :: erlzmq_sockopt(),
-                 erlzmq_sockopt_value()) ->
+                 erlzmq_sockopt_value() | binary()) ->
     ok |
     erlzmq_error().
 setsockopt(Socket, Name, Value) when is_list(Value) ->
