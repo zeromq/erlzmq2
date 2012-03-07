@@ -2,17 +2,17 @@
 // ex: set softtabstop=2 tabstop=2 shiftwidth=2 expandtab fileencoding=utf-8:
 //
 // Copyright (c) 2011 Yurii Rashkovskii, Evax Software and Michael Truog
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -192,7 +192,7 @@ NIF(erlzmq_nif_socket)
   if (! enif_get_int(env, argv[2], &active)) {
     return enif_make_badarg(env);
   }
-  
+
   erlzmq_socket_t * socket = enif_alloc_resource(erlzmq_nif_resource_socket,
                                                  sizeof(erlzmq_socket_t));
   assert(socket);
@@ -344,7 +344,7 @@ NIF(erlzmq_nif_setsockopt)
     case ZMQ_LINGER:
     case ZMQ_RECONNECT_IVL:
     case ZMQ_BACKLOG:
-      if (! enif_get_int(env, argv[1], &value_int)) {
+      if (! enif_get_int(env, argv[2], &value_int)) {
         return enif_make_badarg(env);
       }
       option_value = &value_int;
@@ -498,7 +498,7 @@ NIF(erlzmq_nif_send)
       polling_thread_send = 0;
     }
   }
-  
+
   if (polling_thread_send) {
     req.type = ERLZMQ_THREAD_REQUEST_SEND;
     req.data.send.env = enif_alloc_env();
@@ -534,7 +534,7 @@ NIF(erlzmq_nif_send)
       zmq_msg_close(&msg);
       // each pointer to the socket in a request increments the reference
       enif_keep_resource(socket);
-  
+
       return enif_make_copy(env, req.data.send.ref);
     }
   }
@@ -611,19 +611,19 @@ NIF(erlzmq_nif_recv)
       zmq_msg_close(&msg);
       // each pointer to the socket in a request increments the reference
       enif_keep_resource(socket);
-  
+
       return enif_make_copy(env, req.data.recv.ref);
     }
   }
   else {
     enif_mutex_unlock(socket->mutex);
-    
+
     ErlNifBinary binary;
     enif_alloc_binary(zmq_msg_size(&msg), &binary);
     memcpy(binary.data, zmq_msg_data(&msg), zmq_msg_size(&msg));
-  
+
     zmq_msg_close(&msg);
-  
+
     return enif_make_tuple2(env, enif_make_atom(env, "ok"),
                             enif_make_binary(env, &binary));
   }
@@ -770,7 +770,7 @@ static void * polling_thread(void * handle)
       if (item->revents & ZMQ_POLLIN) {
         size_t value_len = sizeof(int64_t);
         int64_t flag_value = 0;
-        
+
         assert(r->type == ERLZMQ_THREAD_REQUEST_RECV);
         --count;
 
@@ -779,8 +779,8 @@ static void * polling_thread(void * handle)
         enif_mutex_lock(r->data.recv.socket->mutex);
         if (zmq_recv(r->data.recv.socket->socket_zmq, &msg,
                      r->data.recv.flags) ||
-            (r->data.recv.socket->active == ERLZMQ_SOCKET_ACTIVE_ON && 
-            zmq_getsockopt(r->data.recv.socket->socket_zmq, 
+            (r->data.recv.socket->active == ERLZMQ_SOCKET_ACTIVE_ON &&
+            zmq_getsockopt(r->data.recv.socket->socket_zmq,
                     ZMQ_RCVMORE, &flag_value, &value_len)) )
         {
           enif_mutex_unlock(r->data.recv.socket->mutex);
@@ -812,14 +812,14 @@ static void * polling_thread(void * handle)
 
         if (r->data.recv.socket->active == ERLZMQ_SOCKET_ACTIVE_ON) {
           ERL_NIF_TERM flags_list;
-          
+
           // Should we send the multipart flag
           if(flag_value == 1) {
             flags_list = enif_make_list1(r->data.recv.env, enif_make_atom(r->data.recv.env, "rcvmore"));
           } else {
             flags_list = enif_make_list(r->data.recv.env, 0);
           }
-          
+
           enif_send(NULL, &r->data.recv.pid, r->data.recv.env,
             enif_make_tuple4(r->data.recv.env,
               enif_make_atom(r->data.recv.env, "zmq"),
