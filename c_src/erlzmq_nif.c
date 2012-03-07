@@ -344,7 +344,7 @@ NIF(erlzmq_nif_setsockopt)
     case ZMQ_LINGER:
     case ZMQ_RECONNECT_IVL:
     case ZMQ_BACKLOG:
-      if (! enif_get_int(env, argv[1], &value_int)) {
+      if (! enif_get_int(env, argv[2], &value_int)) {
         return enif_make_badarg(env);
       }
       option_value = &value_int;
