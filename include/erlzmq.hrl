@@ -48,15 +48,12 @@
 
 %% Types
 
-%% @type erlzmq_socket_type() = pair | pub | sub | req | rep | xreq | xrep |
-%% pull | push | xpub | xsub.
 %% Possible types for an erlzmq socket.<br />
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_socket">zmq_socket</a></i>
 -type erlzmq_socket_type() :: pair | pub | sub | req | rep | dealer | router | xreq | xrep |
                             pull | push | xpub | xsub.
 
-%% @type erlzmq_endpoint() = string().
 %% The endpoint argument is a string consisting of two parts:
 %% <b>transport://address</b><br />
 %% The following transports are defined:
@@ -67,16 +64,6 @@
 %% <a href="http://api.zeromq.org/master:zmq_connect">zmq_connect</a></i>
 -type erlzmq_endpoint() :: string().
 
-%% @type errno() = eperm | enoent | srch | eintr | eio | enxio | ebad |
-%% echild | edeadlk | enomem | eacces | efault | enotblk | ebusy | eexist |
-%% exdev | enodev | enotdir | eisdir | einval | enfile | emfile | enotty |
-%% etxtbsy | efbig | enospc | espipe | erofs | emlink | epipe | eagain |
-%% einprogress | ealready | enotsock | edestaddrreq | emsgsize |
-%% eprototype | enoprotoopt | eprotonosupport | esocktnosupport |
-%% enotsup | epfnosupport | eafnosupport | eaddrinuse | eaddrnotavail |
-%% enetdown | enetunreach | enetreset | econnaborted | econnreset |
-%% enobufs | eisconn | enotconn | eshutdown | etoomanyrefs | etimedout |
-%% econnrefused | eloop | enametoolong.
 %% Standard error atoms.
 -type errno() :: eperm | enoent | srch | eintr | eio | enxio | ebad |
                  echild | edeadlk | enomem | eacces | efault | enotblk |
@@ -91,34 +78,25 @@
                  enotconn | eshutdown | etoomanyrefs |
                  etimedout | econnrefused | eloop | enametoolong.
 
-%% @type erlzmq_error_type() = enotsup | eprotonosupport | enobufs |
-%% enetdown | eaddrinuse | eaddnotavail | econnrefused | einprogress |
-%% efsm | enocompatproto | eterm | emthread | errno() |
-%% {unknown, integer()}.
 %% Possible error types.
 -type erlzmq_error_type() :: enotsup | eprotonosupport | enobufs | enetdown |
                            eaddrinuse | eaddnotavail | econnrefused |
                            einprogress | efsm | enocompatproto | eterm |
                            emthread | errno() | {unknown, integer()}.
 
-%% @type erlzmq_error() = {error, erlzmq_error_type()}.
 %% Error tuples returned by most API functions.
 -type erlzmq_error() :: {error, erlzmq_error_type()}.
 
-%% @type erlzmq_data() = iolist().
 %% Data to be sent with {@link erlzmq:send/3. send/3} or received with
 %% {@link erlzmq:recv/2. recv/2}
 -type erlzmq_data() :: iolist().
 
-%% @type erlzmq_context() = binary().
 %% An opaque handle to an erlzmq context.
 -opaque erlzmq_context() :: binary().
 
-%% @type erlzmq_socket() = binary().
 %% An opaque handle to an erlzmq socket.
 -opaque erlzmq_socket() :: {pos_integer(), binary()}.
 
-%% @type erlzmq_send_recv_flag() = noblock | sndmore | recvmore | {timeout, timeout()}.
 %% The individual flags to use with {@link erlzmq:send/3. send/3}
 %% and {@link erlzmq:recv/2. recv/2}.<br />
 %% <i>For more information see
@@ -126,15 +104,10 @@
 %% <a href="http://api.zeromq.org/master:zmq_recv">zmq_recv</a></i>
 -type erlzmq_send_recv_flag() :: dontwait | sndmore | recvmore | {timeout, timeout()}.
 
-%% @type erlzmq_send_recv_flags() = list(erlzmq_send_recv_flag()).
 %% A list of flags to use with {@link ezqm:send/3. send/3} and
 %% {@link erlzmq:recv/2. recv/2}
 -type erlzmq_send_recv_flags() :: list(erlzmq_send_recv_flag()).
 
-%% @type erlzmq_sockopt() = hwm | swap | affinity | identity | subscribe |
-%% unsubscribe | rate | recovery_ivl | mcast_loop | sndbuf | rcvbuf |
-%% rcvmore | fd | events | linger | reconnect_ivl | backlog |
-%% | reconnect_ivl_max.
 %% Available options for {@link erlzmq:setsockopt/3. setsockopt/3}
 %% and {@link erlzmq:getsockopt/2. getsockopt/2}.<br />
 %% <i>For more information see
@@ -149,7 +122,6 @@
                           ipv4only.
 
 
-%% @type erlzmq_sockopt_value() = integer() | iolist().
 %% Possible option values for {@link erlzmq:setsockopt/3. setsockopt/3}.
 -type erlzmq_sockopt_value() :: integer() | iolist().
 
