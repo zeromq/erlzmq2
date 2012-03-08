@@ -27,7 +27,7 @@ $(DEPS):
 	@mkdir -p $(DEPS)
 
 $(DEPS)/zeromq3: $(DEPS)
-	@git clone git://github.com/zeromq/libzmq.git $(DEPS)/zeromq3
+	@git clone https://github.com/zeromq/libzmq.git $(DEPS)/zeromq3
 	@echo $(ZEROMQ_VERSION)
 	@cd $(DEPS)/zeromq3 && git checkout $(ZEROMQ_VERSION)
 
