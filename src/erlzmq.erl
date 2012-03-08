@@ -2,17 +2,17 @@
 %% ex: set softtabstop=4 tabstop=4 shiftwidth=4 expandtab fileencoding=utf-8:
 %%
 %% Copyright (c) 2011 Yurii Rashkovskii, Evax Software and Michael Truog
-%% 
+%%
 %% Permission is hereby granted, free of charge, to any person obtaining a copy
 %% of this software and associated documentation files (the "Software"), to deal
 %% in the Software without restriction, including without limitation the rights
 %% to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 %% copies of the Software, and to permit persons to whom the Software is
 %% furnished to do so, subject to the following conditions:
-%% 
+%%
 %% The above copyright notice and this permission notice shall be included in
 %% all copies or substantial portions of the Software.
-%% 
+%%
 %% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 %% IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 %% FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,8 +31,12 @@
          connect/2,
          send/2,
          send/3,
+         sendmsg/2,
+         sendmsg/3,
          recv/1,
          recv/2,
+         recvmsg/1,
+         recvmsg/2,
          setsockopt/3,
          getsockopt/2,
          close/1,
@@ -116,7 +120,7 @@ socket(Context, Type, {active, true}) ->
     erlzmq_nif:socket(Context, socket_type(Type), 1);
 socket(Context, Type, {active, false}) ->
     erlzmq_nif:socket(Context, socket_type(Type), 0).
-    
+
 
 %% @doc Accept connections on a socket.
 %% <br />
@@ -171,10 +175,45 @@ send({I, Socket}, Binary, Flags)
                     ok;
                 {Ref, {error, _} = Error} ->
                     Error
+            after case  erlzmq_nif:getsockopt(Socket,?'ZMQ_SNDTIMEO') of
+                       {ok, -1} ->
+                           infinity;
+                       {ok, Else} ->
+                           Else
+                   end ->
+                    {error, eagain}
             end;
         Result ->
             Result
     end.
+
+%% @equiv send(Socket, Msg, [])
+%% @doc This function exists for zeromq api compatibility and doesn't
+%% actually provide any different functionality then what you get with
+%% the {@link erlzmq:send/2} function. In fact this function just
+%% calls that function. So there is a slight bit of additional
+%% overhead as well.
+-spec sendmsg(erlzmq_socket(),
+           Binary :: binary()) ->
+    ok |
+    erlzmq_error().
+sendmsg(Socket, Binary) when is_binary(Binary) ->
+    send(Socket, Binary, []).
+
+%% @equiv send(Socket, Msg, Flags)
+%% @doc This function exists for zeromq api compatibility and doesn't
+%% actually provide any different functionality then what you get with
+%% the {@link erlzmq:send/3} function. In fact this function just
+%% calls that function. So there is a slight bit of additional
+%% overhead as well.
+-spec sendmsg(erlzmq_socket(),
+           Binary :: binary(),
+           Flags :: erlzmq_send_recv_flags()) ->
+    ok |
+    erlzmq_error().
+sendmsg(Socket, Binary, Flags) ->
+    send(Socket, Binary, Flags).
+
 
 %% @equiv recv(Socket, 0)
 -spec recv(Socket :: erlzmq_socket()) ->
@@ -191,22 +230,50 @@ recv(Socket) ->
 -spec recv(Socket :: erlzmq_socket(),
            Flags :: erlzmq_send_recv_flags()) ->
     {ok, erlzmq_data()} |
-    erlzmq_error() |
-    {error, {timeout, reference()}}.
+    erlzmq_error().
 recv({I, Socket}, Flags)
     when is_integer(I), is_list(Flags) ->
     case erlzmq_nif:recv(Socket, sendrecv_flags(Flags)) of
         Ref when is_reference(Ref) ->
-            Timeout = proplists:get_value(timeout, Flags, infinity),
             receive
                 {Ref, Result} ->
                     {ok, Result}
-            after Timeout ->
-                    {error, {timeout, Ref}}
+            after case erlzmq_nif:getsockopt(Socket,?'ZMQ_RCVTIMEO') of
+                      {ok, -1} ->
+                          infinity;
+                      {ok, Else} ->
+                          Else
+                  end ->
+                    {error, eagain}
             end;
         Result ->
             Result
     end.
+
+%% @equiv recv(Socket, 0)
+%% @doc This function exists for zeromq api compatibility and doesn't
+%% actually provide any different functionality then what you get with
+%% the {@link erlzmq:recv/3} function. In fact this function just
+%% calls that function. So there is a slight bit of additional
+%% overhead as well.
+-spec recvmsg(Socket :: erlzmq_socket()) ->
+    {ok, erlzmq_data()} |
+    erlzmq_error().
+recvmsg(Socket) ->
+    recv(Socket, []).
+
+%% @equiv recv(Socket, Flags)
+%% @doc This function exists for zeromq api compatibility and doesn't
+%% actually provide any different functionality then what you get with
+%% the {@link erlzmq:recv/3} function. In fact this function just
+%% calls that function. So there is a slight bit of additional
+%% overhead as well.
+-spec recvmsg(Socket :: erlzmq_socket(),
+           Flags :: erlzmq_send_recv_flags()) ->
+    {ok, erlzmq_data()} |
+    erlzmq_error().
+recvmsg(Socket, Flags) ->
+    recv(Socket, Flags).
 
 %% @doc Set an {@link erlzmq_sockopt(). option} associated with a socket.
 %% <br />
@@ -343,20 +410,14 @@ socket_type(xsub) ->
 
 sendrecv_flags([]) ->
     0;
-sendrecv_flags([{timeout,_}]) ->
-    0;
-sendrecv_flags([noblock|Rest]) ->
-    ?'ZMQ_NOBLOCK' bor sendrecv_flags(Rest);
+sendrecv_flags([dontwait|Rest]) ->
+    ?'ZMQ_DONTWAIT' bor sendrecv_flags(Rest);
 sendrecv_flags([sndmore|Rest]) ->
     ?'ZMQ_SNDMORE' bor sendrecv_flags(Rest).
 
 -spec option_name(Name :: erlzmq_sockopt()) ->
     integer().
 
-option_name(hwm) ->
-    ?'ZMQ_HWM';
-option_name(swap) ->
-    ?'ZMQ_SWAP';
 option_name(affinity) ->
     ?'ZMQ_AFFINITY';
 option_name(identity) ->
@@ -369,8 +430,6 @@ option_name(rate) ->
     ?'ZMQ_RATE';
 option_name(recovery_ivl) ->
     ?'ZMQ_RECOVERY_IVL';
-option_name(mcast_loop) ->
-    ?'ZMQ_MCAST_LOOP';
 option_name(sndbuf) ->
     ?'ZMQ_SNDBUF';
 option_name(rcvbuf) ->
@@ -387,8 +446,19 @@ option_name(reconnect_ivl) ->
     ?'ZMQ_RECONNECT_IVL';
 option_name(backlog) ->
     ?'ZMQ_BACKLOG';
-option_name(recovery_ivl_msec) ->
-    ?'ZMQ_RECOVERY_IVL_MSEC';
 option_name(reconnect_ivl_max) ->
-    ?'ZMQ_RECONNECT_IVL_MAX'.
-
+    ?'ZMQ_RECONNECT_IVL_MAX';
+option_name(maxmsgsize) ->
+    ?'ZMQ_MAXMSGSIZE';
+option_name(sndhwm) ->
+    ?'ZMQ_SNDHWM';
+option_name(rcvhwm) ->
+    ?'ZMQ_RCVHWM';
+option_name(multicast_hops) ->
+    ?'ZMQ_MULTICAST_HOPS';
+option_name(rcvtimeo) ->
+    ?'ZMQ_RCVTIMEO';
+option_name(sndtimeo) ->
+    ?'ZMQ_SNDTIMEO';
+option_name(ipv4only) ->
+    ?'ZMQ_IPV4ONLY'.
