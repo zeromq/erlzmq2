@@ -2,17 +2,17 @@
 // ex: set softtabstop=2 tabstop=2 shiftwidth=2 expandtab fileencoding=utf-8:
 //
 // Copyright (c) 2011 Yurii Rashkovskii, Evax Software and Michael Truog
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -192,7 +192,7 @@ NIF(erlzmq_nif_socket)
   if (! enif_get_int(env, argv[2], &active)) {
     return enif_make_badarg(env);
   }
-  
+
   erlzmq_socket_t * socket = enif_alloc_resource(erlzmq_nif_resource_socket,
                                                  sizeof(erlzmq_socket_t));
   assert(socket);
@@ -508,7 +508,7 @@ NIF(erlzmq_nif_send)
       polling_thread_send = 0;
     }
   }
-  
+
   if (polling_thread_send) {
     req.type = ERLZMQ_THREAD_REQUEST_SEND;
     req.data.send.env = enif_alloc_env();
@@ -544,7 +544,7 @@ NIF(erlzmq_nif_send)
       zmq_msg_close(&msg);
       // each pointer to the socket in a request increments the reference
       enif_keep_resource(socket);
-  
+
       return enif_make_copy(env, req.data.send.ref);
     }
   }
@@ -621,19 +621,19 @@ NIF(erlzmq_nif_recv)
       zmq_msg_close(&msg);
       // each pointer to the socket in a request increments the reference
       enif_keep_resource(socket);
-  
+
       return enif_make_copy(env, req.data.recv.ref);
     }
   }
   else {
     enif_mutex_unlock(socket->mutex);
-    
+
     ErlNifBinary binary;
     enif_alloc_binary(zmq_msg_size(&msg), &binary);
     memcpy(binary.data, zmq_msg_data(&msg), zmq_msg_size(&msg));
-  
+
     zmq_msg_close(&msg);
-  
+
     return enif_make_tuple2(env, enif_make_atom(env, "ok"),
                             enif_make_binary(env, &binary));
   }
