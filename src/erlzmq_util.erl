@@ -1,6 +1,6 @@
 -module(erlzmq_util).
 
--export([dump/1]).
+-export([dump/1, recv_parts/1, recv_parts/2]).
 
 %%--------------------------------------------------------------------
 %% @doc Reads available messages from Socket, printing them to stdout.
@@ -13,6 +13,41 @@ dump(Socket) ->
     {ok, Msg} = erlzmq:recv(Socket),
     io:format("----------------------------------------~n"),
     dump_msg(Msg, Socket).
+
+%%--------------------------------------------------------------------
+%% @doc Receives message parts for Socket, returning them as a list.
+%% @equiv recv_parts(Socket, infinity)
+%% @end
+%%--------------------------------------------------------------------
+
+recv_parts(Socket) ->
+    recv_parts(Socket, infinity).
+
+%%--------------------------------------------------------------------
+%% @doc Receives message parts for Socket, returning them as a list.
+%% @spec recv_parts(Socket, Timeout) -> [binary()]
+%% Socket = erlzmq_socket()
+%% Timeout = integer() | infinity
+%% @end
+%%--------------------------------------------------------------------
+
+recv_parts(Socket, Timeout) ->
+    recv_parts(Socket, Timeout, []).
+
+%%--------------------------------------------------------------------
+%% @doc Accumulator for recv_parts/2
+%% @spec recv_parts(Socket, Timeout, Acc0) -> Acc
+%% @end
+%%--------------------------------------------------------------------
+recv_parts(Socket, Timeout, Acc) ->
+    receive
+        {zmq, Socket, Part, []} ->
+            lists:reverse([Part|Acc]);
+        {zmq, Socket, Part, [rcvmore]} ->
+            recv_parts(Socket, Timeout, [Part|Acc])
+    after
+        Timeout -> exit({zmq_recv_timeout, Socket})
+    end.
 
 %%--------------------------------------------------------------------
 %% @doc Print a socket message, including subsequent parts.
