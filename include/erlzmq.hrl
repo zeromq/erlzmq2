@@ -125,3 +125,4 @@
 %% Possible option values for {@link erlzmq:setsockopt/3. setsockopt/3}.
 -type erlzmq_sockopt_value() :: integer() | iolist().
 
+-record(zmq, {socket, data, flags}).
