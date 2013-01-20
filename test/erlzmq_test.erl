@@ -112,9 +112,9 @@ reqrep_device_test() ->
                           {ok, Msg} = erlzmq:recv(Xrep),
                           {ok, RcvMore}= erlzmq:getsockopt(Xrep, rcvmore),
                           case RcvMore of
-                              0 ->
+                              false ->
                                   ok = erlzmq:send(Xreq, Msg);
-                              _ ->
+                              true ->
                                   ok = erlzmq:send(Xreq, Msg, [sndmore])
                           end
                   end,
@@ -124,11 +124,11 @@ reqrep_device_test() ->
     {ok, Buff0} = erlzmq:recv(Rep),
     ?assertMatch(<<"ABC">>, Buff0),
     {ok, RcvMore1} = erlzmq:getsockopt(Rep, rcvmore),
-    ?assert(RcvMore1 > 0),
+    ?assertMatch(true, RcvMore1),
     {ok, Buff1} = erlzmq:recv(Rep),
     ?assertMatch(<<"DEF">>, Buff1),
     {ok, RcvMore2} = erlzmq:getsockopt(Rep, rcvmore),
-    ?assertMatch(0, RcvMore2),
+    ?assertMatch(false, RcvMore2),
 
     %%  Send the reply.
     ok = erlzmq:send(Rep, <<"GHI">>, [sndmore]),
@@ -139,9 +139,9 @@ reqrep_device_test() ->
                           {ok, Msg} = erlzmq:recv(Xreq),
                           {ok,RcvMore3} = erlzmq:getsockopt(Xreq, rcvmore),
                           case RcvMore3 of
-                              0 ->
+                              false ->
                                   ok = erlzmq:send(Xrep, Msg);
-                              _ ->
+                              true ->
                                   ok = erlzmq:send(Xrep, Msg, [sndmore])
                           end
                   end, lists:seq(1, 4)),
@@ -150,11 +150,11 @@ reqrep_device_test() ->
     {ok, Buff2} = erlzmq:recv(Req),
     ?assertMatch(<<"GHI">>, Buff2),
     {ok, RcvMore4} = erlzmq:getsockopt(Req, rcvmore),
-    ?assert(RcvMore4 > 0),
+    ?assertMatch(true, RcvMore4),
     {ok, Buff3} = erlzmq:recv(Req),
     ?assertMatch(<<"JKL">>, Buff3),
     {ok, RcvMore5} = erlzmq:getsockopt(Req, rcvmore),
-    ?assertMatch(0, RcvMore5),
+    ?assertMatch(false, RcvMore5),
 
     %%  Clean up.
     ok = erlzmq:close(Req),

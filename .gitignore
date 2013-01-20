@@ -1,5 +1,6 @@
 ebin/*.app
 ebin/*.beam
+test/*.beam
 priv/*.so
 c_src/*.o
 deps
@@ -10,3 +11,7 @@ doc/edoc-info
 doc/erlang.png
 doc/*.html
 doc/stylesheet.css
+*~
+*.swa
+*.swp
+*.swo
