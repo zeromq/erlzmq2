@@ -163,6 +163,62 @@ reqrep_device_test() ->
     ok = erlzmq:close(Xreq),
     ok = erlzmq:term(Ctx).
 
+reqrep_erlzmq_device_test() ->
+    {ok, Ctx} = erlzmq:context(),
+
+    %%  Create a router/dealer device.
+    DevicePid = spawn(
+        fun() ->
+            {ok, Router} = erlzmq:socket(Ctx, [router, {active, true}]),
+            ok = erlzmq:bind(Router, "tcp://127.0.0.1:5561"),
+            {ok, Dealer} = erlzmq:socket(Ctx, [dealer, {active, true}]),
+            ok = erlzmq:bind(Dealer, "tcp://127.0.0.1:5560"),
+            erlzmq_device:queue(Router, Dealer),
+            ok = erlzmq:close(Router),
+            ok = erlzmq:close(Dealer)
+        end),
+
+    %%  Create a worker.
+    {ok, Rep} = erlzmq:socket(Ctx, rep),
+    ok= erlzmq:connect(Rep, "tcp://127.0.0.1:5560"),
+
+    %%  Create a client.
+    {ok, Req} = erlzmq:socket(Ctx, req),
+    ok = erlzmq:connect(Req, "tcp://127.0.0.1:5561"),
+
+    %%  Send a request.
+    ok = erlzmq:send(Req, <<"ABC">>, [sndmore]),
+    ok = erlzmq:send(Req, <<"DEF">>),
+
+    %%  Receive the request.
+    {ok, Buff0} = erlzmq:recv(Rep),
+    ?assertMatch(<<"ABC">>, Buff0),
+    {ok, RcvMore1} = erlzmq:getsockopt(Rep, rcvmore),
+    ?assertMatch(true, RcvMore1),
+    {ok, Buff1} = erlzmq:recv(Rep),
+    ?assertMatch(<<"DEF">>, Buff1),
+    {ok, RcvMore2} = erlzmq:getsockopt(Rep, rcvmore),
+    ?assertMatch(false, RcvMore2),
+
+    %%  Send the reply.
+    ok = erlzmq:send(Rep, <<"GHI">>, [sndmore]),
+    ok = erlzmq:send (Rep, <<"JKL">>),
+
+    %%  Receive the reply.
+    {ok, Buff2} = erlzmq:recv(Req),
+    ?assertMatch(<<"GHI">>, Buff2),
+    {ok, RcvMore4} = erlzmq:getsockopt(Req, rcvmore),
+    ?assertMatch(true, RcvMore4),
+    {ok, Buff3} = erlzmq:recv(Req),
+    ?assertMatch(<<"JKL">>, Buff3),
+    {ok, RcvMore5} = erlzmq:getsockopt(Req, rcvmore),
+    ?assertMatch(false, RcvMore5),
+
+    %%  Clean up.
+    ok = erlzmq:close(Req),
+    ok = erlzmq:close(Rep),
+    DevicePid ! {shutdown},
+    ok = erlzmq:term(Ctx).
 
 reqrep_inproc_test() ->
     basic_tests("inproc://test", req, rep, active),

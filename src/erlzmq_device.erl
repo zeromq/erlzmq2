@@ -21,12 +21,15 @@ queue(Frontend, Backend) ->
     receive
         {zmq, Frontend, Msg, Flags} ->
             Parts = lists:reverse(queue_recv_acc(Frontend, Flags, [Msg])),
-            queue_send(Backend, Parts);
+            queue_send(Backend, Parts),
+            queue(Frontend, Backend);
         {zmq, Backend, Msg, Flags} ->
             Parts = lists:reverse(queue_recv_acc(Backend, Flags, [Msg])),
-            queue_send(Frontend, Parts)
-    end,
-    queue(Frontend, Backend).
+            queue_send(Frontend, Parts),
+            queue(Frontend, Backend);
+        {shutdown} ->
+            ok
+    end.
 
 %%--------------------------------------------------------------------
 %% @doc Accumulates messages from Socket.
