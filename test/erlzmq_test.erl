@@ -4,8 +4,8 @@
 
 hwm_test() ->
     {ok, C} = erlzmq:context(),
-    {ok, S1} = erlzmq:socket(C, [pull, {active, false}]),
-    {ok, S2} = erlzmq:socket(C, [push, {active, false}]),
+    {ok, S1} = erlzmq:socket(C, pull),
+    {ok, S2} = erlzmq:socket(C, push),
 
     ok = erlzmq:setsockopt(S1, rcvhwm, 2),
     ok = erlzmq:setsockopt(S2, sndhwm, 2),
@@ -41,8 +41,8 @@ hwm_loop(N, S) ->
 invalid_rep_test() ->
     {ok, Ctx} = erlzmq:context(),
 
-    {ok, XrepSocket} = erlzmq:socket(Ctx, [xrep, {active, false}]),
-    {ok, ReqSocket} = erlzmq:socket(Ctx, [req, {active, false}]),
+    {ok, XrepSocket} = erlzmq:socket(Ctx, xrep),
+    {ok, ReqSocket} = erlzmq:socket(Ctx, req),
 
     ok = erlzmq:setsockopt(XrepSocket, linger, 0),
     ok = erlzmq:setsockopt(ReqSocket, linger, 0),
@@ -89,17 +89,17 @@ reqrep_device_test() ->
     {ok, Ctx} = erlzmq:context(),
 
     %%  Create a req/rep device.
-    {ok, Xreq} = erlzmq:socket(Ctx, [xreq, {active, false}]),
+    {ok, Xreq} = erlzmq:socket(Ctx, xreq),
     ok = erlzmq:bind(Xreq, "tcp://127.0.0.1:5560"),
-    {ok, Xrep} = erlzmq:socket(Ctx, [xrep, {active, false}]),
+    {ok, Xrep} = erlzmq:socket(Ctx, xrep),
     ok = erlzmq:bind(Xrep, "tcp://127.0.0.1:5561"),
 
     %%  Create a worker.
-    {ok, Rep} = erlzmq:socket(Ctx, [rep, {active, false}]),
+    {ok, Rep} = erlzmq:socket(Ctx, rep),
     ok= erlzmq:connect(Rep, "tcp://127.0.0.1:5560"),
 
     %%  Create a client.
-    {ok, Req} = erlzmq:socket(Ctx, [req, {active, false}]),
+    {ok, Req} = erlzmq:socket(Ctx, req),
     ok = erlzmq:connect(Req, "tcp://127.0.0.1:5561"),
 
     %%  Send a request.
@@ -234,8 +234,8 @@ reqrep_tcp_test() ->
 
 subscribe_test() ->
     {ok, Ctx} = erlzmq:context(),
-    {ok, Pub} = erlzmq:socket(Ctx, [pub, {active, false}]),
-    {ok, Sub} = erlzmq:socket(Ctx, [sub, {active, true}]),
+    {ok, Pub} = erlzmq:socket(Ctx, pub),
+    {ok, Sub} = erlzmq:socket(Ctx, sub),
     ok = erlzmq:bind(Pub, "tcp://*:5560"),
     ok = erlzmq:connect(Sub, "tcp://127.0.0.1:5560"),
     ok = erlzmq:setsockopt(Sub, subscribe, <<"a">>),
@@ -268,21 +268,21 @@ sub_forward_test() ->
     {ok, Ctx} = erlzmq:context(),
 
     %%  First, create an intermediate device.
-    {ok, Xpub} = erlzmq:socket(Ctx, [xpub, {active, false}]),
+    {ok, Xpub} = erlzmq:socket(Ctx, xpub),
 
     ok = erlzmq:bind(Xpub, "tcp://127.0.0.1:5560"),
 
-    {ok, Xsub} = erlzmq:socket(Ctx, [xsub, {active, false}]),
+    {ok, Xsub} = erlzmq:socket(Ctx, xsub),
 
     ok = erlzmq:bind(Xsub, "tcp://127.0.0.1:5561"),
 
     %%  Create a publisher.
-    {ok, Pub} = erlzmq:socket(Ctx, [pub, {active, false}]),
+    {ok, Pub} = erlzmq:socket(Ctx, pub),
 
     ok = erlzmq:connect(Pub, "tcp://127.0.0.1:5561"),
 
     %%  Create a subscriber.
-    {ok, Sub} = erlzmq:socket(Ctx, [sub, {active, false}]),
+    {ok, Sub} = erlzmq:socket(Ctx, sub),
 
     ok = erlzmq:connect(Sub, "tcp://127.0.0.1:5560"),
 
@@ -317,7 +317,7 @@ sub_forward_test() ->
 timeo_test() ->
     {ok, Ctx} = erlzmq:context(),
     %%  Create a disconnected socket.
-    {ok, Sb} = erlzmq:socket(Ctx, [pull, {active, false}]),
+    {ok, Sb} = erlzmq:socket(Ctx, pull),
     ok = erlzmq:bind(Sb, "inproc://timeout_test"),
     %%  Check whether non-blocking recv returns immediately.
     {error, eagain} = erlzmq:recv(Sb, [dontwait]),
@@ -335,7 +335,7 @@ timeo_test() ->
     ok = erlzmq:setsockopt(Sb, rcvtimeo, Timeout1),
     proc_lib:spawn(fun() ->
                            timer:sleep(1000),
-                           {ok, Sc} = erlzmq:socket(Ctx, [push, {active, false}]),
+                           {ok, Sc} = erlzmq:socket(Ctx, push),
                            ok = erlzmq:connect(Sc, "inproc://timeout_test"),
                            timer:sleep(1000),
                            ok = erlzmq:close(Sc)
@@ -346,7 +346,7 @@ timeo_test() ->
     ?assert(Elapsed1 > 1900000 andalso Elapsed1 < 2100000),
 
     %%  Check that timeouts don't break normal message transfer.
-    {ok, Sc} = erlzmq:socket(Ctx, [push, {active, false}]),
+    {ok, Sc} = erlzmq:socket(Ctx, push),
     ok = erlzmq:setsockopt(Sb, rcvtimeo, Timeout1),
     ok = erlzmq:setsockopt(Sb, sndtimeo, Timeout1),
     ok = erlzmq:connect(Sc, "inproc://timeout_test"),
@@ -374,7 +374,7 @@ shutdown_stress_loop(0) ->
     ok;
 shutdown_stress_loop(N) ->
     {ok, C} = erlzmq:context(7),
-    {ok, S1} = erlzmq:socket(C, [rep, {active, false}]),
+    {ok, S1} = erlzmq:socket(C, rep),
     ?assertMatch(ok, shutdown_stress_worker_loop(100, C)),
     ?assertMatch(ok, join_procs(100)),
     ?assertMatch(ok, erlzmq:close(S1)),
@@ -383,18 +383,18 @@ shutdown_stress_loop(N) ->
 
 shutdown_no_blocking_test() ->
     {ok, C} = erlzmq:context(),
-    {ok, S} = erlzmq:socket(C, [pub, {active, false}]),
+    {ok, S} = erlzmq:socket(C, pub),
     erlzmq:close(S),
     ?assertEqual(ok, erlzmq:term(C, 500)).
 
 shutdown_blocking_test() ->
     {ok, C} = erlzmq:context(),
-    {ok, _S} = erlzmq:socket(C, [pub, {active, false}]),
+    {ok, _S} = erlzmq:socket(C, pub),
     ?assertMatch({error, {timeout, _}}, erlzmq:term(C, 0)).
 
 shutdown_blocking_unblocking_test() ->
     {ok, C} = erlzmq:context(),
-    {ok, S} = erlzmq:socket(C, [pub, {active, false}]),
+    {ok, S} = erlzmq:socket(C, pub),
     V = erlzmq:term(C, 500),
     ?assertMatch({error, {timeout, _}}, V),
     {error, {timeout, Ref}} = V,
@@ -418,7 +418,7 @@ join_procs(N) ->
 shutdown_stress_worker_loop(0, _) ->
     ok;
 shutdown_stress_worker_loop(N, C) ->
-    {ok, S2} = erlzmq:socket(C, [sub, {active, false}]),
+    {ok, S2} = erlzmq:socket(C, sub),
     spawn(?MODULE, worker, [self(), S2]),
     shutdown_stress_worker_loop(N-1, C).
 
