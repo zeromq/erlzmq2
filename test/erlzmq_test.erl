@@ -232,6 +232,37 @@ reqrep_tcp_test() ->
     basic_tests("tcp://127.0.0.1:5556", req, rep, active),
     basic_tests("tcp://127.0.0.1:5557", req, rep, passive).
 
+subscribe_test() ->
+    {ok, Ctx} = erlzmq:context(),
+    {ok, Pub} = erlzmq:socket(Ctx, [pub, {active, false}]),
+    {ok, Sub} = erlzmq:socket(Ctx, [sub, {active, true}]),
+    ok = erlzmq:bind(Pub, "tcp://*:5560"),
+    ok = erlzmq:connect(Sub, "tcp://127.0.0.1:5560"),
+    ok = erlzmq:setsockopt(Sub, subscribe, <<"a">>),
+    ok = erlzmq:setsockopt(Sub, subscribe, <<"b">>),
+
+    %%  Wait a bit till the subscription gets to the publisher.
+    timer:sleep(1000),
+
+    Msg1 = <<"ab">>,
+    Msg2 = <<"ba">>,
+    Msg3 = <<"c">>,
+    ok = erlzmq:send(Pub, Msg1),
+    {ok, Msg1} = erlzmq:recv(Sub),
+    ok = erlzmq:send(Pub, Msg2),
+    {ok, Msg2} = erlzmq:recv(Sub),
+    ok = erlzmq:send(Pub, Msg3),
+    % Msg3 will not be received
+    ok = erlzmq:setsockopt(Sub, unsubscribe, <<"a">>),
+    ok = erlzmq:send(Pub, Msg1),
+    % Msg1 will not be received
+    ok = erlzmq:send(Pub, Msg2),
+    {ok, Msg2} = erlzmq:recv(Sub),
+
+    % cleanup
+    ok = erlzmq:close(Pub),
+    ok = erlzmq:close(Sub),
+    ok = erlzmq:term(Ctx).
 
 sub_forward_test() ->
     {ok, Ctx} = erlzmq:context(),
