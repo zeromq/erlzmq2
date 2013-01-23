@@ -2,17 +2,17 @@
 %% ex: set softtabstop=4 tabstop=4 shiftwidth=4 expandtab fileencoding=utf-8:
 %%
 %% Copyright (c) 2011 Yurii Rashkovskii, Evax Software and Michael Truog
-%% 
+%%
 %% Permission is hereby granted, free of charge, to any person obtaining a copy
 %% of this software and associated documentation files (the "Software"), to deal
 %% in the Software without restriction, including without limitation the rights
 %% to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 %% copies of the Software, and to permit persons to whom the Software is
 %% furnished to do so, subject to the following conditions:
-%% 
+%%
 %% The above copyright notice and this permission notice shall be included in
 %% all copies or substantial portions of the Software.
-%% 
+%%
 %% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 %% IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 %% FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -233,7 +233,11 @@ setsockopt({I, Socket}, Name, Value) when is_integer(I), is_atom(Name) ->
     {ok, erlzmq_sockopt_value()} |
     erlzmq_error().
 getsockopt({I, Socket}, Name) when is_integer(I), is_atom(Name) ->
-    erlzmq_nif:getsockopt(Socket, option_name(Name)).
+    coerce_sockopt(Name, erlzmq_nif:getsockopt(Socket, option_name(Name))).
+
+coerce_sockopt(rcvmore, {ok, 0}) -> {ok, false};
+coerce_sockopt(rcvmore, {ok, 1}) -> {ok, true};
+coerce_sockopt(_Other, Val) -> Val.
 
 %% @equiv close(Socket, infinity)
 -spec close(Socket :: erlzmq_socket()) ->
@@ -301,6 +305,9 @@ term(Context, Timeout) ->
     end.
 
 %% @doc Returns the 0MQ library version.
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/master:zmq_version">zmq_version</a>.</i>
 %% @end
 -spec version() -> {integer(), integer(), integer()}.
 

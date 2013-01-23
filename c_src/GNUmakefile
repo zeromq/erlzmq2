@@ -28,6 +28,7 @@ $(DEPS)/zeromq2:
 	@git clone git://github.com/zeromq/zeromq2-x.git $(DEPS)/zeromq2
 	@echo $(ZEROMQ_VERSION)
 	@cd $(DEPS)/zeromq2 && git checkout $(ZEROMQ_VERSION)
+	@./patch-zeromq2
 
 $(DEPS)/zeromq2/src/.libs/libzmq.a: $(DEPS)/zeromq2
 	@cd $(DEPS)/zeromq2 && ./autogen.sh && ./configure $(ZMQ_FLAGS) && make
