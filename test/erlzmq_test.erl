@@ -223,8 +223,8 @@ reqrep_erlzmq_device_test() ->
 reqrep_erlzmq_proxy_test() ->
     {ok, Ctx} = erlzmq:context(),
 
-    %%  Create a router/dealer proxy.
     SelfPid = self(),
+    %%  Create a router/dealer proxy.
     ProxyPid = spawn(
         fun() ->
             {ok, Router} = erlzmq:socket(Ctx, router),
@@ -374,6 +374,52 @@ sub_forward_test() ->
     ok = erlzmq:close(Xsub),
     ok = erlzmq:close(Pub),
     ok = erlzmq:close(Sub),
+    ok = erlzmq:term(Ctx).
+
+sub_forward_proxy_test() ->
+    {ok, Ctx} = erlzmq:context(),
+
+    SelfPid = self(),
+    %%  First, create an intermediate proxy.
+    ProxyPid = spawn(
+        fun() ->
+            {ok, Xpub} = erlzmq:socket(Ctx, xpub),
+            ok = erlzmq:bind(Xpub, "tcp://127.0.0.1:5560"),
+            {ok, Xsub} = erlzmq:socket(Ctx, xsub),
+            ok = erlzmq:bind(Xsub, "tcp://127.0.0.1:5561"),
+            erlzmq_proxy:create(Xpub, Xsub),
+            ok = erlzmq:close(Xpub),
+            ok = erlzmq:close(Xsub),
+            SelfPid ! {done, self()}
+        end),
+
+    %%  Create a publisher.
+    {ok, Pub} = erlzmq:socket(Ctx, pub),
+    ok = erlzmq:connect(Pub, "tcp://127.0.0.1:5561"),
+
+    %%  Create a subscriber.
+    {ok, Sub} = erlzmq:socket(Ctx, sub),
+    ok = erlzmq:connect(Sub, "tcp://127.0.0.1:5560"),
+
+    %%  Subscribe for all messages.
+    ok = erlzmq:setsockopt(Sub, subscribe, <<"">>),
+
+    %%  Wait a bit till the subscription gets to the publisher.
+    timer:sleep(1000),
+
+    %%  Send an empty message.
+    ok = erlzmq:send(Pub, <<"hello">>),
+
+    %%  Receive the message in the subscriber.
+    {ok, <<"hello">>} = erlzmq:recv(Sub),
+
+    %%  Clean up.
+    ok = erlzmq:close(Pub),
+    ok = erlzmq:close(Sub),
+    ProxyPid ! shutdown,
+    receive
+        {done, ProxyPid} -> ok
+    end,
     ok = erlzmq:term(Ctx).
 
 timeo_test() ->
