@@ -294,12 +294,7 @@ reqrep_tcp_test() ->
     basic_tests("tcp://127.0.0.1:5556", req, rep, active),
     basic_tests("tcp://127.0.0.1:5557", req, rep, passive).
 
-subscribe_test() ->
-    {ok, Ctx} = erlzmq:context(),
-    {ok, Pub} = erlzmq:socket(Ctx, pub),
-    {ok, Sub} = erlzmq:socket(Ctx, sub),
-    ok = erlzmq:bind(Pub, "tcp://*:5560"),
-    ok = erlzmq:connect(Sub, "tcp://127.0.0.1:5560"),
+subscribe_test_helper(Pub, Sub) ->
     ok = erlzmq:setsockopt(Sub, subscribe, <<"a">>),
     ok = erlzmq:setsockopt(Sub, subscribe, <<"b">>),
 
@@ -319,7 +314,16 @@ subscribe_test() ->
     ok = erlzmq:send(Pub, Msg1),
     % Msg1 will not be received
     ok = erlzmq:send(Pub, Msg2),
-    {ok, Msg2} = erlzmq:recv(Sub),
+    {ok, Msg2} = erlzmq:recv(Sub).
+
+subscribe_test() ->
+    {ok, Ctx} = erlzmq:context(),
+    {ok, Pub} = erlzmq:socket(Ctx, pub),
+    {ok, Sub} = erlzmq:socket(Ctx, sub),
+    ok = erlzmq:bind(Pub, "tcp://*:5560"),
+    ok = erlzmq:connect(Sub, "tcp://127.0.0.1:5560"),
+
+    subscribe_test_helper(Pub, Sub),
 
     % cleanup
     ok = erlzmq:close(Pub),
@@ -376,12 +380,8 @@ sub_forward_test() ->
     ok = erlzmq:close(Sub),
     ok = erlzmq:term(Ctx).
 
-sub_forward_proxy_test() ->
-    {ok, Ctx} = erlzmq:context(),
-
-    SelfPid = self(),
-    %%  First, create an intermediate proxy.
-    ProxyPid = spawn(
+create_xpubxsub_proxy(Ctx, Pid) ->
+    spawn(
         fun() ->
             {ok, Xpub} = erlzmq:socket(Ctx, xpub),
             ok = erlzmq:bind(Xpub, "tcp://127.0.0.1:5560"),
@@ -390,8 +390,15 @@ sub_forward_proxy_test() ->
             erlzmq_proxy:create(Xpub, Xsub),
             ok = erlzmq:close(Xpub),
             ok = erlzmq:close(Xsub),
-            SelfPid ! {done, self()}
-        end),
+            Pid ! {done, self()}
+        end).
+
+sub_forward_proxy_test() ->
+    {ok, Ctx} = erlzmq:context(),
+
+    SelfPid = self(),
+    %%  First, create an intermediate proxy.
+    ProxyPid = create_xpubxsub_proxy(Ctx, SelfPid),
 
     %%  Create a publisher.
     {ok, Pub} = erlzmq:socket(Ctx, pub),
@@ -412,6 +419,30 @@ sub_forward_proxy_test() ->
 
     %%  Receive the message in the subscriber.
     {ok, <<"hello">>} = erlzmq:recv(Sub),
+
+    %%  Clean up.
+    ok = erlzmq:close(Pub),
+    ok = erlzmq:close(Sub),
+    ProxyPid ! shutdown,
+    receive
+        {done, ProxyPid} -> ok
+    end,
+    ok = erlzmq:term(Ctx).
+
+sub_forward_proxy_subscription_test() ->
+    {ok, Ctx} = erlzmq:context(),
+
+    SelfPid = self(),
+
+    %%  First, create an intermediate proxy.
+    ProxyPid = create_xpubxsub_proxy(Ctx, SelfPid),
+
+    {ok, Pub} = erlzmq:socket(Ctx, pub),
+    {ok, Sub} = erlzmq:socket(Ctx, sub),
+    ok = erlzmq:connect(Pub, "tcp://127.0.0.1:5561"),
+    ok = erlzmq:connect(Sub, "tcp://127.0.0.1:5560"),
+
+    subscribe_test_helper(Pub, Sub),
 
     %%  Clean up.
     ok = erlzmq:close(Pub),
