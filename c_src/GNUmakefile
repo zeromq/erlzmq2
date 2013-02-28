@@ -8,14 +8,13 @@ ZMQ_FLAGS=
 endif
 
 ifndef ZEROMQ_VERSION
-ZEROMQ_VERSION=v2.1.11
 endif
 
-all: $(DEPS)/zeromq2/src/.libs/libzmq.a
+all: $(DEPS)/libzmq/src/.libs/libzmq.a
 
 clean:
-	if test -e $(DEPS)/zeromq2/Makefile; then \
-		cd $(DEPS)/zeromq2; make clean; \
+	if test -e $(DEPS)/libzmq/Makefile; then \
+		cd $(DEPS)/libzmq; make clean; \
 	else \
 		true; \
 	fi
@@ -23,11 +22,9 @@ clean:
 distclean:
 	@rm -rf $(DEPS)
 
-$(DEPS)/zeromq2:
+$(DEPS)/libzmq:
 	@mkdir $(DEPS)
-	@git clone git://github.com/zeromq/zeromq2-x.git $(DEPS)/zeromq2
-	@echo $(ZEROMQ_VERSION)
-	@cd $(DEPS)/zeromq2 && git checkout $(ZEROMQ_VERSION)
+	@git clone git://github.com/zeromq/libzmq.git $(DEPS)/libzmq
 
-$(DEPS)/zeromq2/src/.libs/libzmq.a: $(DEPS)/zeromq2
-	@cd $(DEPS)/zeromq2 && ./autogen.sh && ./configure $(ZMQ_FLAGS) && make
+$(DEPS)/libzmq/src/.libs/libzmq.a: $(DEPS)/libzmq
+	@cd $(DEPS)/libzmq && ./autogen.sh && ./configure $(ZMQ_FLAGS) && make

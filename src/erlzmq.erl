@@ -350,50 +350,66 @@ sendrecv_flags([]) ->
     0;
 sendrecv_flags([{timeout,_}]) ->
     0;
-sendrecv_flags([noblock|Rest]) ->
-    ?'ZMQ_NOBLOCK' bor sendrecv_flags(Rest);
+sendrecv_flags([dontwait|Rest]) ->
+    ?'ZMQ_DONTWAIT' bor sendrecv_flags(Rest);
 sendrecv_flags([sndmore|Rest]) ->
     ?'ZMQ_SNDMORE' bor sendrecv_flags(Rest).
 
 -spec option_name(Name :: erlzmq_sockopt()) ->
     integer().
 
-option_name(hwm) ->
-    ?'ZMQ_HWM';
-option_name(swap) ->
-    ?'ZMQ_SWAP';
+option_name(sndhwm) ->
+    ?'ZMQ_SNDHWM';
+option_name(rcvhwm) ->
+    ?'ZMQ_RCVHWM';
 option_name(affinity) ->
     ?'ZMQ_AFFINITY';
-option_name(identity) ->
-    ?'ZMQ_IDENTITY';
 option_name(subscribe) ->
     ?'ZMQ_SUBSCRIBE';
 option_name(unsubscribe) ->
     ?'ZMQ_UNSUBSCRIBE';
+option_name(identity) ->
+    ?'ZMQ_IDENTITY';
 option_name(rate) ->
     ?'ZMQ_RATE';
 option_name(recovery_ivl) ->
     ?'ZMQ_RECOVERY_IVL';
-option_name(mcast_loop) ->
-    ?'ZMQ_MCAST_LOOP';
 option_name(sndbuf) ->
     ?'ZMQ_SNDBUF';
 option_name(rcvbuf) ->
     ?'ZMQ_RCVBUF';
-option_name(rcvmore) ->
-    ?'ZMQ_RCVMORE';
-option_name(fd) ->
-    ?'ZMQ_FD';
-option_name(events) ->
-    ?'ZMQ_EVENTS';
 option_name(linger) ->
     ?'ZMQ_LINGER';
 option_name(reconnect_ivl) ->
     ?'ZMQ_RECONNECT_IVL';
+option_name(reconnect_ivl_max) ->
+    ?'ZMQ_RECONNECT_IVL_MAX';
 option_name(backlog) ->
     ?'ZMQ_BACKLOG';
-option_name(recovery_ivl_msec) ->
-    ?'ZMQ_RECOVERY_IVL_MSEC';
-option_name(reconnect_ivl_max) ->
-    ?'ZMQ_RECONNECT_IVL_MAX'.
+option_name(maxmsgsize) ->
+    ?'ZMQ_MAXMSGSIZE';
+option_name(multicast_hops) ->
+    ?'ZMQ_MULTICAST_HOPS';
+option_name(rcvtimeo) ->
+    ?'ZMQ_RCVTIMEO';
+option_name(sndtimeo) ->
+    ?'ZMQ_SNDTIMEO';
+option_name(ipv4only) ->
+    ?'ZMQ_IPV4ONLY';
+option_name(delay_attach_on_connect) ->
+    ?'ZMQ_DELAY_ATTACH_ON_CONNECT';
+option_name(router_mandatory) ->
+    ?'ZMQ_ROUTER_MANDATORY';
+option_name(xpub_verbose) ->
+    ?'ZMQ_XPUB_VERBOSE';
+option_name(tcp_keepalive) ->
+    ?'ZMQ_TCP_KEEPALIVE';
+option_name(tcp_keepalive_idle) ->
+    ?'ZMQ_TCP_KEEPALIVE_IDLE';
+option_name(tcp_keepalive_cnt) ->
+    ?'ZMQ_TCP_KEEPALIVE_CNT';
+option_name(tcp_keepalive_intvl) ->
+    ?'ZMQ_TCP_KEEPALIVE_INTVL';
+option_name(tcp_accept_filter) ->
+    ?'ZMQ_TCP_ACCEPT_FILTER'.
 

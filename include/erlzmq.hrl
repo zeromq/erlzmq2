@@ -13,15 +13,12 @@
 -define('ZMQ_XSUB',        10).
 
 % ZMQ socket options.
--define('ZMQ_HWM',                1).
--define('ZMQ_SWAP',               3).
 -define('ZMQ_AFFINITY',           4).
 -define('ZMQ_IDENTITY',           5).
 -define('ZMQ_SUBSCRIBE',          6).
 -define('ZMQ_UNSUBSCRIBE',        7).
 -define('ZMQ_RATE',               8).
 -define('ZMQ_RECOVERY_IVL',       9).
--define('ZMQ_MCAST_LOOP',        10).
 -define('ZMQ_SNDBUF',            11).
 -define('ZMQ_RCVBUF',            12).
 -define('ZMQ_RCVMORE',           13).
@@ -31,11 +28,28 @@
 -define('ZMQ_LINGER',            17).
 -define('ZMQ_RECONNECT_IVL',     18).
 -define('ZMQ_BACKLOG',           19).
--define('ZMQ_RECOVERY_IVL_MSEC', 20).
 -define('ZMQ_RECONNECT_IVL_MAX', 21).
+-define('ZMQ_MAXMSGSIZE',        22).
+-define('ZMQ_SNDHWM',            23).
+-define('ZMQ_RCVHWM',            24).
+-define('ZMQ_MULTICAST_HOPS',    25).
+-define('ZMQ_RCVTIMEO',          27).
+-define('ZMQ_SNDTIMEO',          28).
+-define('ZMQ_IPV4ONLY',          31).
+-define('ZMQ_LAST_ENDPOINT',     32).
+-define('ZMQ_ROUTER_MANDATORY',  33).
+-define('ZMQ_TCP_KEEPALIVE',     34).
+-define('ZMQ_TCP_KEEPALIVE_CNT', 35).
+-define('ZMQ_TCP_KEEPALIVE_IDLE', 36).
+-define('ZMQ_TCP_KEEPALIVE_INTVL', 37).
+-define('ZMQ_TCP_ACCEPT_FILTER', 38).
+-define('ZMQ_DELAY_ATTACH_ON_CONNECT', 39).
+-define('ZMQ_XPUB_VERBOSE',      40).
+-define('ZMQ_ROUTER_RAW',        41).
+-define('ZMQ_IPV6',              42).
 
 % ZMQ send/recv flags
--define('ZMQ_NOBLOCK',    1).
+-define('ZMQ_DONTWAIT',    1).
 -define('ZMQ_SNDMORE',    2).
 
 %% Types
@@ -110,13 +124,13 @@
 %% An opaque handle to an erlzmq socket.
 -opaque erlzmq_socket() :: {pos_integer(), binary()}.
 
-%% @type erlzmq_send_recv_flag() = noblock | sndmore | recvmore | {timeout, timeout()}.
+%% @type erlzmq_send_recv_flag() = dontwait | sndmore | recvmore | {timeout, timeout()}.
 %% The individual flags to use with {@link erlzmq:send/3. send/3}
 %% and {@link erlzmq:recv/2. recv/2}.<br />
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_send">zmq_send</a> or
 %% <a href="http://api.zeromq.org/master:zmq_recv">zmq_recv</a></i>
--type erlzmq_send_recv_flag() :: noblock | sndmore | recvmore | {timeout, timeout()}.
+-type erlzmq_send_recv_flag() :: dontwait | sndmore | recvmore | {timeout, timeout()}.
 
 %% @type erlzmq_send_recv_flags() = list(erlzmq_send_recv_flag()).
 %% A list of flags to use with {@link ezqm:send/3. send/3} and
@@ -132,11 +146,15 @@
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_setsockopt">zmq_setsockopt</a>
 %% and <a href="http://api.zeromq.org/master:zmq_getsockopt">zmq_getsockopt</a></i>
--type erlzmq_sockopt() :: hwm | swap | affinity | identity | subscribe |
-                        unsubscribe | rate | recovery_ivl | mcast_loop |
-                        sndbuf | rcvbuf | rcvmore | fd | events | linger |
-                        reconnect_ivl | backlog | recovery_ivl_msec |
-                        reconnect_ivl_max.
+-type erlzmq_sockopt() :: sndhwm | rcvhwm | affinity | subscribe | unsubsrcibe
+                        | identity | rate | recovery_ivl | sndbuf | rcvbuf 
+                        | linger | reconnect_ivl | reconnect_ivl_max
+                        | backlog | maxmsgsize | multicast_hops
+                        | rcvtimeo | sndtimeo | ipv4only  
+                        | delay_attach_on_connect | router_mandatory
+                        | xpub_verbose | tcp_keeplive | tcp_keeplive_idle
+                        | tcp_keeplive_cnt | tcp_keeplive_intvl 
+                        | tcp_accept_filter.
 
 %% @type erlzmq_sockopt_value() = integer() | iolist().
 %% Possible option values for {@link erlzmq:setsockopt/3. setsockopt/3}.
