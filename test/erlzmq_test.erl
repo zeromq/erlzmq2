@@ -8,7 +8,7 @@ hwm_test() ->
     {ok, S2} = erlzmq:socket(C, [push, {active, false}]),
 
     ok = erlzmq:setsockopt(S2, linger, 0),
-    ok = erlzmq:setsockopt(S2, hwm, 5),
+    ok = erlzmq:setsockopt(S2, sndhwm, 5),
 
     ok = erlzmq:bind(S1, "tcp://127.0.0.1:5858"),
     ok = erlzmq:connect(S2, "tcp://127.0.0.1:5858"),
@@ -24,12 +24,25 @@ hwm_test() ->
 hwm_loop(0, _S) ->
     ok;
 hwm_loop(N, S) when N > 5 ->
-    ?assertMatch(ok, erlzmq:send(S, <<"test">>, [noblock])),
+    ?assertMatch(ok, erlzmq:send(S, <<"test">>, [dontwait])),
     hwm_loop(N-1, S);
 hwm_loop(N, S) ->
-    ?assertMatch({error, _} ,erlzmq:send(S, <<"test">>, [noblock])),
+    ?assertMatch({error, _} ,erlzmq:send(S, <<"test">>, [dontwait])),
     hwm_loop(N-1, S).
 
+%% add new test for setsockopt and getsockopt
+sock_test() ->
+    {ok, C} = erlzmq:context(),
+    {ok, S} = erlzmq:socket(C,req),
+
+    ?assertMatch(ok, erlzmq:setsockopt(S, sndhwm, 5)),
+    ?assertMatch({ok,5}, erlzmq:getsockopt(S, sndhwm)),
+    
+    ?assertMatch(ok, erlzmq:setsockopt(S, linger, 5000)),
+    ?assertMatch({ok,5000}, erlzmq:getsockopt(S, linger)),
+
+    ok = erlzmq:close(S),
+    ok = erlzmq:term(C).
 
 pair_inproc_test() ->
     basic_tests("inproc://tester", pair, pair, active),

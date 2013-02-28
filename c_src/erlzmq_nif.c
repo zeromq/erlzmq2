@@ -30,6 +30,10 @@
 
 #define ERLZMQ_MAX_CONCURRENT_REQUESTS 16384
 
+// add more macro for 3.x
+#   define more_t int
+#   define ZMQ_POLL_MSEC    1           //  zmq_poll is msec
+
 static ErlNifResourceType* erlzmq_nif_resource_context;
 static ErlNifResourceType* erlzmq_nif_resource_socket;
 
@@ -316,10 +320,7 @@ NIF(erlzmq_nif_setsockopt)
   size_t option_len;
   switch (option_name) {
     // uint64_t
-    case ZMQ_HWM:
     case ZMQ_AFFINITY:
-    case ZMQ_SNDBUF:
-    case ZMQ_RCVBUF:
       if (! enif_get_uint64(env, argv[2], &value_uint64)) {
         return enif_make_badarg(env);
       }
@@ -327,10 +328,7 @@ NIF(erlzmq_nif_setsockopt)
       option_len = sizeof(int64_t);
       break;
     // int64_t
-    case ZMQ_SWAP:
-    case ZMQ_RATE:
-    case ZMQ_RECOVERY_IVL:
-    case ZMQ_MCAST_LOOP:
+    case ZMQ_MAXMSGSIZE:
       if (! enif_get_int64(env, argv[2], &value_int64)) {
         return enif_make_badarg(env);
       }
@@ -348,9 +346,28 @@ NIF(erlzmq_nif_setsockopt)
       option_len = value_binary.size;
       break;
     // int
+    case ZMQ_SNDHWM:
+    case ZMQ_RCVHWM:
+    case ZMQ_RATE:
+    case ZMQ_RECOVERY_IVL:
+    case ZMQ_SNDBUF:
+    case ZMQ_RCVBUF:
     case ZMQ_LINGER:
     case ZMQ_RECONNECT_IVL:
+    case ZMQ_RECONNECT_IVL_MAX:
     case ZMQ_BACKLOG:
+    case ZMQ_MULTICAST_HOPS:
+    case ZMQ_RCVTIMEO:
+    case ZMQ_SNDTIMEO:
+    case ZMQ_IPV4ONLY:
+    case ZMQ_DELAY_ATTACH_ON_CONNECT:
+    case ZMQ_ROUTER_MANDATORY:
+    case ZMQ_XPUB_VERBOSE:
+    case ZMQ_TCP_KEEPALIVE:
+    case ZMQ_TCP_KEEPALIVE_IDLE:
+    case ZMQ_TCP_KEEPALIVE_CNT:
+    case ZMQ_TCP_KEEPALIVE_INTVL:
+    case ZMQ_TCP_ACCEPT_FILTER:
       if (! enif_get_int(env, argv[2], &value_int)) {
         return enif_make_badarg(env);
       }
@@ -395,12 +412,7 @@ NIF(erlzmq_nif_getsockopt)
   size_t option_len;
   switch(option_name) {
     // int64_t
-    case ZMQ_RCVMORE:
-    case ZMQ_SWAP:
-    case ZMQ_RATE:
-    case ZMQ_RECOVERY_IVL:
-    case ZMQ_RECOVERY_IVL_MSEC:
-    case ZMQ_MCAST_LOOP:
+    case ZMQ_MAXMSGSIZE:
       option_len = sizeof(value_int64);
       enif_mutex_lock(socket->mutex);
       if (zmq_getsockopt(socket->socket_zmq, option_name,
@@ -412,10 +424,7 @@ NIF(erlzmq_nif_getsockopt)
       return enif_make_tuple2(env, enif_make_atom(env, "ok"),
                               enif_make_int64(env, value_int64));
     // uint64_t
-    case ZMQ_HWM:
     case ZMQ_AFFINITY:
-    case ZMQ_SNDBUF:
-    case ZMQ_RCVBUF:
       option_len = sizeof(value_uint64);
       enif_mutex_lock(socket->mutex);
       if (zmq_getsockopt(socket->socket_zmq, option_name,
@@ -428,6 +437,8 @@ NIF(erlzmq_nif_getsockopt)
                               enif_make_uint64(env, value_uint64));
     // binary
     case ZMQ_IDENTITY:
+    case ZMQ_SUBSCRIBE:
+    case ZMQ_UNSUBSCRIBE:
       option_len = sizeof(option_value);
       enif_mutex_lock(socket->mutex);
       if (zmq_getsockopt(socket->socket_zmq, option_name,
@@ -441,12 +452,28 @@ NIF(erlzmq_nif_getsockopt)
       return enif_make_tuple2(env, enif_make_atom(env, "ok"),
                               enif_make_binary(env, &value_binary));
     // int
-    case ZMQ_TYPE:
+    case ZMQ_SNDHWM:
+    case ZMQ_RCVHWM:
+    case ZMQ_RATE:
+    case ZMQ_RECOVERY_IVL:
+    case ZMQ_SNDBUF:
+    case ZMQ_RCVBUF:
     case ZMQ_LINGER:
     case ZMQ_RECONNECT_IVL:
     case ZMQ_RECONNECT_IVL_MAX:
     case ZMQ_BACKLOG:
-    case ZMQ_FD:   // FIXME: ZMQ_FD returns SOCKET on Windows
+    case ZMQ_MULTICAST_HOPS:
+    case ZMQ_RCVTIMEO:
+    case ZMQ_SNDTIMEO:
+    case ZMQ_IPV4ONLY:
+    case ZMQ_DELAY_ATTACH_ON_CONNECT:
+    case ZMQ_ROUTER_MANDATORY:
+    case ZMQ_XPUB_VERBOSE:
+    case ZMQ_TCP_KEEPALIVE:
+    case ZMQ_TCP_KEEPALIVE_IDLE:
+    case ZMQ_TCP_KEEPALIVE_CNT:
+    case ZMQ_TCP_KEEPALIVE_INTVL:
+    case ZMQ_TCP_ACCEPT_FILTER:
       option_len = sizeof(value_int);
       enif_mutex_lock(socket->mutex);
       if (zmq_getsockopt(socket->socket_zmq, option_name,
@@ -490,12 +517,12 @@ NIF(erlzmq_nif_send)
   int polling_thread_send = 1;
   if (! socket->active) {
     enif_mutex_lock(socket->mutex);
-    if (zmq_send(socket->socket_zmq, &req.data.send.msg,
-                 req.data.send.flags | ZMQ_NOBLOCK)) {
+    if (zmq_msg_send(&req.data.send.msg,socket->socket_zmq,
+                 req.data.send.flags | ZMQ_DONTWAIT) == -1) {
       enif_mutex_unlock(socket->mutex);
       int const error = zmq_errno();
       if (error != EAGAIN ||
-          (error == EAGAIN && (req.data.send.flags & ZMQ_NOBLOCK))) {
+          (error == EAGAIN && (req.data.send.flags & ZMQ_DONTWAIT))) {
         zmq_msg_close(&req.data.send.msg);
         return return_zmq_errno(env, error);
       }
@@ -527,7 +554,7 @@ NIF(erlzmq_nif_send)
       enif_mutex_unlock(socket->context->mutex);
       return return_zmq_errno(env, ETERM);
     }
-    if (zmq_send(socket->context->thread_socket, &msg, 0)) {
+    if (zmq_msg_send(&msg, socket->context->thread_socket, 0) == -1) {
       enif_mutex_unlock(socket->context->mutex);
 
       zmq_msg_close(&msg);
@@ -578,13 +605,13 @@ NIF(erlzmq_nif_recv)
 
   // try recv with noblock
   enif_mutex_lock(socket->mutex);
-  if (zmq_recv(socket->socket_zmq, &msg, ZMQ_NOBLOCK)) {
+  if (zmq_msg_recv(&msg, socket->socket_zmq, ZMQ_DONTWAIT) == -1) {
     enif_mutex_unlock(socket->mutex);
     zmq_msg_close(&msg);
 
     int const error = zmq_errno();
     if (error != EAGAIN ||
-        (error == EAGAIN && (req.data.recv.flags & ZMQ_NOBLOCK))) {
+        (error == EAGAIN && (req.data.recv.flags & ZMQ_DONTWAIT))) {
       return return_zmq_errno(env, error);
     }
     req.type = ERLZMQ_THREAD_REQUEST_RECV;
@@ -605,7 +632,7 @@ NIF(erlzmq_nif_recv)
       enif_mutex_unlock(socket->context->mutex);
       return return_zmq_errno(env, ETERM);
     }
-    if (zmq_send(socket->context->thread_socket, &msg, 0)) {
+    if (zmq_msg_send(&msg, socket->context->thread_socket, 0) == -1) {
       enif_mutex_unlock(socket->context->mutex);
 
       zmq_msg_close(&msg);
@@ -672,7 +699,7 @@ NIF(erlzmq_nif_close)
     enif_mutex_unlock(socket->context->mutex);
     return enif_make_atom(env, "ok");
   }
-  if (zmq_send(socket->context->thread_socket, &msg, 0)) {
+  if (zmq_msg_send(&msg, socket->context->thread_socket, 0) == -1) {
     enif_mutex_unlock(socket->context->mutex);
     zmq_msg_close(&msg);
     enif_free_env(req.data.close.env);
@@ -711,7 +738,7 @@ NIF(erlzmq_nif_term)
   memcpy(zmq_msg_data(&msg), &req, sizeof(erlzmq_thread_request_t));
 
   enif_mutex_lock(context->mutex);
-  if (zmq_send(context->thread_socket, &msg, 0)) {
+  if (zmq_msg_send(&msg, context->thread_socket, 0) == -1) {
     enif_mutex_unlock(context->mutex);
     zmq_msg_close(&msg);
     enif_free_env(req.data.term.env);
@@ -784,8 +811,8 @@ static void * polling_thread(void * handle)
         zmq_msg_t msg;
         zmq_msg_init(&msg);
         enif_mutex_lock(r->data.recv.socket->mutex);
-        if (zmq_recv(r->data.recv.socket->socket_zmq, &msg,
-                     r->data.recv.flags) ||
+        if ((zmq_msg_recv(&msg, r->data.recv.socket->socket_zmq,
+                     r->data.recv.flags) == -1 ) ||
             (r->data.recv.socket->active == ERLZMQ_SOCKET_ACTIVE_ON && 
             zmq_getsockopt(r->data.recv.socket->socket_zmq, 
                     ZMQ_RCVMORE, &flag_value, &value_len)) )
@@ -861,8 +888,8 @@ static void * polling_thread(void * handle)
         --count;
 
         enif_mutex_lock(r->data.send.socket->mutex);
-        if (zmq_send(r->data.send.socket->socket_zmq,
-                     &r->data.send.msg, r->data.send.flags)) {
+        if (zmq_msg_send(&r->data.send.msg, r->data.send.socket->socket_zmq,
+                     r->data.send.flags) == -1) {
           enif_mutex_unlock(r->data.send.socket->mutex);
           enif_send(NULL, &r->data.send.pid, r->data.send.env,
             enif_make_tuple2(r->data.send.env,
@@ -892,9 +919,9 @@ static void * polling_thread(void * handle)
       zmq_msg_t msg;
       zmq_msg_init(&msg);
       enif_mutex_lock(context->mutex);
-      status = zmq_recv(thread_socket, &msg, 0);
+      status = zmq_msg_recv(&msg, thread_socket, 0);
       enif_mutex_unlock(context->mutex);
-      assert(status == 0);
+      assert((status != -1) && (status != 0));
 
       assert(zmq_msg_size(&msg) == sizeof(erlzmq_thread_request_t));
 
@@ -1031,7 +1058,7 @@ static ERL_NIF_TERM add_active_req(ErlNifEnv* env, erlzmq_socket_t * socket)
 
   memcpy(zmq_msg_data(&msg), &req, sizeof(erlzmq_thread_request_t));
 
-  if (zmq_send(socket->context->thread_socket, &msg, 0)) {
+  if (zmq_msg_send(&msg, socket->context->thread_socket, 0) == -1) {
     zmq_msg_close(&msg);
     enif_free_env(req.data.recv.env);
     return return_zmq_errno(env, zmq_errno());
