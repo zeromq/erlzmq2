@@ -305,7 +305,11 @@ setsockopt({I, Socket}, Name, Value) when is_integer(I), is_atom(Name) ->
     {ok, erlzmq_sockopt_value()} |
     erlzmq_error().
 getsockopt({I, Socket}, Name) when is_integer(I), is_atom(Name) ->
-    erlzmq_nif:getsockopt(Socket, option_name(Name)).
+    coerce_sockopt(Name, erlzmq_nif:getsockopt(Socket, option_name(Name))).
+
+coerce_sockopt(rcvmore, {ok, 0}) -> {ok, false};
+coerce_sockopt(rcvmore, {ok, 1}) -> {ok, true};
+coerce_sockopt(_Other, Val) -> Val.
 
 %% @equiv close(Socket, infinity)
 -spec close(Socket :: erlzmq_socket()) ->
@@ -373,6 +377,9 @@ term(Context, Timeout) ->
     end.
 
 %% @doc Returns the 0MQ library version.
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/master:zmq_version">zmq_version</a>.</i>
 %% @end
 -spec version() -> {integer(), integer(), integer()}.
 

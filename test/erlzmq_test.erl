@@ -4,8 +4,8 @@
 
 hwm_test() ->
     {ok, C} = erlzmq:context(),
-    {ok, S1} = erlzmq:socket(C, [pull, {active, false}]),
-    {ok, S2} = erlzmq:socket(C, [push, {active, false}]),
+    {ok, S1} = erlzmq:socket(C, pull),
+    {ok, S2} = erlzmq:socket(C, push),
 
     ok = erlzmq:setsockopt(S1, rcvhwm, 2),
     ok = erlzmq:setsockopt(S2, sndhwm, 2),
@@ -41,8 +41,8 @@ hwm_loop(N, S) ->
 invalid_rep_test() ->
     {ok, Ctx} = erlzmq:context(),
 
-    {ok, XrepSocket} = erlzmq:socket(Ctx, [xrep, {active, false}]),
-    {ok, ReqSocket} = erlzmq:socket(Ctx, [req, {active, false}]),
+    {ok, XrepSocket} = erlzmq:socket(Ctx, xrep),
+    {ok, ReqSocket} = erlzmq:socket(Ctx, req),
 
     ok = erlzmq:setsockopt(XrepSocket, linger, 0),
     ok = erlzmq:setsockopt(ReqSocket, linger, 0),
@@ -89,17 +89,17 @@ reqrep_device_test() ->
     {ok, Ctx} = erlzmq:context(),
 
     %%  Create a req/rep device.
-    {ok, Xreq} = erlzmq:socket(Ctx, [xreq, {active, false}]),
+    {ok, Xreq} = erlzmq:socket(Ctx, xreq),
     ok = erlzmq:bind(Xreq, "tcp://127.0.0.1:5560"),
-    {ok, Xrep} = erlzmq:socket(Ctx, [xrep, {active, false}]),
+    {ok, Xrep} = erlzmq:socket(Ctx, xrep),
     ok = erlzmq:bind(Xrep, "tcp://127.0.0.1:5561"),
 
     %%  Create a worker.
-    {ok, Rep} = erlzmq:socket(Ctx, [rep, {active, false}]),
+    {ok, Rep} = erlzmq:socket(Ctx, rep),
     ok= erlzmq:connect(Rep, "tcp://127.0.0.1:5560"),
 
     %%  Create a client.
-    {ok, Req} = erlzmq:socket(Ctx, [req, {active, false}]),
+    {ok, Req} = erlzmq:socket(Ctx, req),
     ok = erlzmq:connect(Req, "tcp://127.0.0.1:5561"),
 
     %%  Send a request.
@@ -112,9 +112,9 @@ reqrep_device_test() ->
                           {ok, Msg} = erlzmq:recv(Xrep),
                           {ok, RcvMore}= erlzmq:getsockopt(Xrep, rcvmore),
                           case RcvMore of
-                              0 ->
+                              false ->
                                   ok = erlzmq:send(Xreq, Msg);
-                              _ ->
+                              true ->
                                   ok = erlzmq:send(Xreq, Msg, [sndmore])
                           end
                   end,
@@ -124,11 +124,11 @@ reqrep_device_test() ->
     {ok, Buff0} = erlzmq:recv(Rep),
     ?assertMatch(<<"ABC">>, Buff0),
     {ok, RcvMore1} = erlzmq:getsockopt(Rep, rcvmore),
-    ?assert(RcvMore1 > 0),
+    ?assertMatch(true, RcvMore1),
     {ok, Buff1} = erlzmq:recv(Rep),
     ?assertMatch(<<"DEF">>, Buff1),
     {ok, RcvMore2} = erlzmq:getsockopt(Rep, rcvmore),
-    ?assertMatch(0, RcvMore2),
+    ?assertMatch(false, RcvMore2),
 
     %%  Send the reply.
     ok = erlzmq:send(Rep, <<"GHI">>, [sndmore]),
@@ -139,9 +139,9 @@ reqrep_device_test() ->
                           {ok, Msg} = erlzmq:recv(Xreq),
                           {ok,RcvMore3} = erlzmq:getsockopt(Xreq, rcvmore),
                           case RcvMore3 of
-                              0 ->
+                              false ->
                                   ok = erlzmq:send(Xrep, Msg);
-                              _ ->
+                              true ->
                                   ok = erlzmq:send(Xrep, Msg, [sndmore])
                           end
                   end, lists:seq(1, 4)),
@@ -150,11 +150,11 @@ reqrep_device_test() ->
     {ok, Buff2} = erlzmq:recv(Req),
     ?assertMatch(<<"GHI">>, Buff2),
     {ok, RcvMore4} = erlzmq:getsockopt(Req, rcvmore),
-    ?assert(RcvMore4 > 0),
+    ?assertMatch(true, RcvMore4),
     {ok, Buff3} = erlzmq:recv(Req),
     ?assertMatch(<<"JKL">>, Buff3),
     {ok, RcvMore5} = erlzmq:getsockopt(Req, rcvmore),
-    ?assertMatch(0, RcvMore5),
+    ?assertMatch(false, RcvMore5),
 
     %%  Clean up.
     ok = erlzmq:close(Req),
@@ -163,6 +163,124 @@ reqrep_device_test() ->
     ok = erlzmq:close(Xreq),
     ok = erlzmq:term(Ctx).
 
+reqrep_erlzmq_device_test() ->
+    {ok, Ctx} = erlzmq:context(),
+
+    %%  Create a router/dealer device.
+    DevicePid = spawn(
+        fun() ->
+            {ok, Router} = erlzmq:socket(Ctx, [router, {active, true}]),
+            ok = erlzmq:bind(Router, "tcp://127.0.0.1:5561"),
+            {ok, Dealer} = erlzmq:socket(Ctx, [dealer, {active, true}]),
+            ok = erlzmq:bind(Dealer, "tcp://127.0.0.1:5560"),
+            erlzmq_device:queue(Router, Dealer),
+            ok = erlzmq:close(Router),
+            ok = erlzmq:close(Dealer)
+        end),
+
+    %%  Create a worker.
+    {ok, Rep} = erlzmq:socket(Ctx, rep),
+    ok= erlzmq:connect(Rep, "tcp://127.0.0.1:5560"),
+
+    %%  Create a client.
+    {ok, Req} = erlzmq:socket(Ctx, req),
+    ok = erlzmq:connect(Req, "tcp://127.0.0.1:5561"),
+
+    %%  Send a request.
+    ok = erlzmq:send(Req, <<"ABC">>, [sndmore]),
+    ok = erlzmq:send(Req, <<"DEF">>),
+
+    %%  Receive the request.
+    {ok, Buff0} = erlzmq:recv(Rep),
+    ?assertMatch(<<"ABC">>, Buff0),
+    {ok, RcvMore1} = erlzmq:getsockopt(Rep, rcvmore),
+    ?assertMatch(true, RcvMore1),
+    {ok, Buff1} = erlzmq:recv(Rep),
+    ?assertMatch(<<"DEF">>, Buff1),
+    {ok, RcvMore2} = erlzmq:getsockopt(Rep, rcvmore),
+    ?assertMatch(false, RcvMore2),
+
+    %%  Send the reply.
+    ok = erlzmq:send(Rep, <<"GHI">>, [sndmore]),
+    ok = erlzmq:send (Rep, <<"JKL">>),
+
+    %%  Receive the reply.
+    {ok, Buff2} = erlzmq:recv(Req),
+    ?assertMatch(<<"GHI">>, Buff2),
+    {ok, RcvMore4} = erlzmq:getsockopt(Req, rcvmore),
+    ?assertMatch(true, RcvMore4),
+    {ok, Buff3} = erlzmq:recv(Req),
+    ?assertMatch(<<"JKL">>, Buff3),
+    {ok, RcvMore5} = erlzmq:getsockopt(Req, rcvmore),
+    ?assertMatch(false, RcvMore5),
+
+    %%  Clean up.
+    ok = erlzmq:close(Req),
+    ok = erlzmq:close(Rep),
+    DevicePid ! {shutdown},
+    ok = erlzmq:term(Ctx).
+
+reqrep_erlzmq_proxy_test() ->
+    {ok, Ctx} = erlzmq:context(),
+
+    SelfPid = self(),
+    %%  Create a router/dealer proxy.
+    ProxyPid = spawn(
+        fun() ->
+            {ok, Router} = erlzmq:socket(Ctx, router),
+            ok = erlzmq:bind(Router, "tcp://127.0.0.1:5561"),
+            {ok, Dealer} = erlzmq:socket(Ctx, dealer),
+            ok = erlzmq:bind(Dealer, "tcp://127.0.0.1:5560"),
+            erlzmq_proxy:create(Router, Dealer),
+            ok = erlzmq:close(Router),
+            ok = erlzmq:close(Dealer),
+            SelfPid ! {done, self()}
+        end),
+
+    %%  Create a worker.
+    {ok, Rep} = erlzmq:socket(Ctx, rep),
+    ok= erlzmq:connect(Rep, "tcp://127.0.0.1:5560"),
+
+    %%  Create a client.
+    {ok, Req} = erlzmq:socket(Ctx, req),
+    ok = erlzmq:connect(Req, "tcp://127.0.0.1:5561"),
+
+    %%  Send a request.
+    ok = erlzmq:send(Req, <<"ABC">>, [sndmore]),
+    ok = erlzmq:send(Req, <<"DEF">>),
+
+    %%  Receive the request.
+    {ok, Buff0} = erlzmq:recv(Rep),
+    ?assertMatch(<<"ABC">>, Buff0),
+    {ok, RcvMore1} = erlzmq:getsockopt(Rep, rcvmore),
+    ?assertMatch(true, RcvMore1),
+    {ok, Buff1} = erlzmq:recv(Rep),
+    ?assertMatch(<<"DEF">>, Buff1),
+    {ok, RcvMore2} = erlzmq:getsockopt(Rep, rcvmore),
+    ?assertMatch(false, RcvMore2),
+
+    %%  Send the reply.
+    ok = erlzmq:send(Rep, <<"GHI">>, [sndmore]),
+    ok = erlzmq:send (Rep, <<"JKL">>),
+
+    %%  Receive the reply.
+    {ok, Buff2} = erlzmq:recv(Req),
+    ?assertMatch(<<"GHI">>, Buff2),
+    {ok, RcvMore4} = erlzmq:getsockopt(Req, rcvmore),
+    ?assertMatch(true, RcvMore4),
+    {ok, Buff3} = erlzmq:recv(Req),
+    ?assertMatch(<<"JKL">>, Buff3),
+    {ok, RcvMore5} = erlzmq:getsockopt(Req, rcvmore),
+    ?assertMatch(false, RcvMore5),
+
+    %%  Clean up.
+    ok = erlzmq:close(Req),
+    ok = erlzmq:close(Rep),
+    ProxyPid ! shutdown,
+    receive
+        {done, ProxyPid} -> ok
+    end,
+    ok = erlzmq:term(Ctx).
 
 reqrep_inproc_test() ->
     basic_tests("inproc://test", req, rep, active),
@@ -176,26 +294,61 @@ reqrep_tcp_test() ->
     basic_tests("tcp://127.0.0.1:5556", req, rep, active),
     basic_tests("tcp://127.0.0.1:5557", req, rep, passive).
 
+subscribe_test_helper(Pub, Sub) ->
+    ok = erlzmq:setsockopt(Sub, subscribe, <<"a">>),
+    ok = erlzmq:setsockopt(Sub, subscribe, <<"b">>),
+
+    %%  Wait a bit till the subscription gets to the publisher.
+    timer:sleep(1000),
+
+    Msg1 = <<"ab">>,
+    Msg2 = <<"ba">>,
+    Msg3 = <<"c">>,
+    ok = erlzmq:send(Pub, Msg1),
+    {ok, Msg1} = erlzmq:recv(Sub),
+    ok = erlzmq:send(Pub, Msg2),
+    {ok, Msg2} = erlzmq:recv(Sub),
+    ok = erlzmq:send(Pub, Msg3),
+    % Msg3 will not be received
+    ok = erlzmq:setsockopt(Sub, unsubscribe, <<"a">>),
+    ok = erlzmq:send(Pub, Msg1),
+    % Msg1 will not be received
+    ok = erlzmq:send(Pub, Msg2),
+    {ok, Msg2} = erlzmq:recv(Sub).
+
+subscribe_test() ->
+    {ok, Ctx} = erlzmq:context(),
+    {ok, Pub} = erlzmq:socket(Ctx, pub),
+    {ok, Sub} = erlzmq:socket(Ctx, sub),
+    ok = erlzmq:bind(Pub, "tcp://*:5560"),
+    ok = erlzmq:connect(Sub, "tcp://127.0.0.1:5560"),
+
+    subscribe_test_helper(Pub, Sub),
+
+    % cleanup
+    ok = erlzmq:close(Pub),
+    ok = erlzmq:close(Sub),
+    ok = erlzmq:term(Ctx).
 
 sub_forward_test() ->
     {ok, Ctx} = erlzmq:context(),
 
     %%  First, create an intermediate device.
-    {ok, Xpub} = erlzmq:socket(Ctx, [xpub, {active, false}]),
+    {ok, Xpub} = erlzmq:socket(Ctx, xpub),
 
     ok = erlzmq:bind(Xpub, "tcp://127.0.0.1:5560"),
 
-    {ok, Xsub} = erlzmq:socket(Ctx, [xsub, {active, false}]),
+    {ok, Xsub} = erlzmq:socket(Ctx, xsub),
 
     ok = erlzmq:bind(Xsub, "tcp://127.0.0.1:5561"),
 
     %%  Create a publisher.
-    {ok, Pub} = erlzmq:socket(Ctx, [pub, {active, false}]),
+    {ok, Pub} = erlzmq:socket(Ctx, pub),
 
     ok = erlzmq:connect(Pub, "tcp://127.0.0.1:5561"),
 
     %%  Create a subscriber.
-    {ok, Sub} = erlzmq:socket(Ctx, [sub, {active, false}]),
+    {ok, Sub} = erlzmq:socket(Ctx, sub),
 
     ok = erlzmq:connect(Sub, "tcp://127.0.0.1:5560"),
 
@@ -227,10 +380,83 @@ sub_forward_test() ->
     ok = erlzmq:close(Sub),
     ok = erlzmq:term(Ctx).
 
+create_xpubxsub_proxy(Ctx, Pid) ->
+    spawn(
+        fun() ->
+            {ok, Xpub} = erlzmq:socket(Ctx, xpub),
+            ok = erlzmq:bind(Xpub, "tcp://127.0.0.1:5560"),
+            {ok, Xsub} = erlzmq:socket(Ctx, xsub),
+            ok = erlzmq:bind(Xsub, "tcp://127.0.0.1:5561"),
+            erlzmq_proxy:create(Xpub, Xsub),
+            ok = erlzmq:close(Xpub),
+            ok = erlzmq:close(Xsub),
+            Pid ! {done, self()}
+        end).
+
+sub_forward_proxy_test() ->
+    {ok, Ctx} = erlzmq:context(),
+
+    SelfPid = self(),
+    %%  First, create an intermediate proxy.
+    ProxyPid = create_xpubxsub_proxy(Ctx, SelfPid),
+
+    %%  Create a publisher.
+    {ok, Pub} = erlzmq:socket(Ctx, pub),
+    ok = erlzmq:connect(Pub, "tcp://127.0.0.1:5561"),
+
+    %%  Create a subscriber.
+    {ok, Sub} = erlzmq:socket(Ctx, sub),
+    ok = erlzmq:connect(Sub, "tcp://127.0.0.1:5560"),
+
+    %%  Subscribe for all messages.
+    ok = erlzmq:setsockopt(Sub, subscribe, <<"">>),
+
+    %%  Wait a bit till the subscription gets to the publisher.
+    timer:sleep(1000),
+
+    %%  Send an empty message.
+    ok = erlzmq:send(Pub, <<"hello">>),
+
+    %%  Receive the message in the subscriber.
+    {ok, <<"hello">>} = erlzmq:recv(Sub),
+
+    %%  Clean up.
+    ok = erlzmq:close(Pub),
+    ok = erlzmq:close(Sub),
+    ProxyPid ! shutdown,
+    receive
+        {done, ProxyPid} -> ok
+    end,
+    ok = erlzmq:term(Ctx).
+
+sub_forward_proxy_subscription_test() ->
+    {ok, Ctx} = erlzmq:context(),
+
+    SelfPid = self(),
+
+    %%  First, create an intermediate proxy.
+    ProxyPid = create_xpubxsub_proxy(Ctx, SelfPid),
+
+    {ok, Pub} = erlzmq:socket(Ctx, pub),
+    {ok, Sub} = erlzmq:socket(Ctx, sub),
+    ok = erlzmq:connect(Pub, "tcp://127.0.0.1:5561"),
+    ok = erlzmq:connect(Sub, "tcp://127.0.0.1:5560"),
+
+    subscribe_test_helper(Pub, Sub),
+
+    %%  Clean up.
+    ok = erlzmq:close(Pub),
+    ok = erlzmq:close(Sub),
+    ProxyPid ! shutdown,
+    receive
+        {done, ProxyPid} -> ok
+    end,
+    ok = erlzmq:term(Ctx).
+
 timeo_test() ->
     {ok, Ctx} = erlzmq:context(),
     %%  Create a disconnected socket.
-    {ok, Sb} = erlzmq:socket(Ctx, [pull, {active, false}]),
+    {ok, Sb} = erlzmq:socket(Ctx, pull),
     ok = erlzmq:bind(Sb, "inproc://timeout_test"),
     %%  Check whether non-blocking recv returns immediately.
     {error, eagain} = erlzmq:recv(Sb, [dontwait]),
@@ -248,7 +474,7 @@ timeo_test() ->
     ok = erlzmq:setsockopt(Sb, rcvtimeo, Timeout1),
     proc_lib:spawn(fun() ->
                            timer:sleep(1000),
-                           {ok, Sc} = erlzmq:socket(Ctx, [push, {active, false}]),
+                           {ok, Sc} = erlzmq:socket(Ctx, push),
                            ok = erlzmq:connect(Sc, "inproc://timeout_test"),
                            timer:sleep(1000),
                            ok = erlzmq:close(Sc)
@@ -259,7 +485,7 @@ timeo_test() ->
     ?assert(Elapsed1 > 1900000 andalso Elapsed1 < 2100000),
 
     %%  Check that timeouts don't break normal message transfer.
-    {ok, Sc} = erlzmq:socket(Ctx, [push, {active, false}]),
+    {ok, Sc} = erlzmq:socket(Ctx, push),
     ok = erlzmq:setsockopt(Sb, rcvtimeo, Timeout1),
     ok = erlzmq:setsockopt(Sb, sndtimeo, Timeout1),
     ok = erlzmq:connect(Sc, "inproc://timeout_test"),
@@ -287,7 +513,7 @@ shutdown_stress_loop(0) ->
     ok;
 shutdown_stress_loop(N) ->
     {ok, C} = erlzmq:context(7),
-    {ok, S1} = erlzmq:socket(C, [rep, {active, false}]),
+    {ok, S1} = erlzmq:socket(C, rep),
     ?assertMatch(ok, shutdown_stress_worker_loop(100, C)),
     ?assertMatch(ok, join_procs(100)),
     ?assertMatch(ok, erlzmq:close(S1)),
@@ -296,18 +522,18 @@ shutdown_stress_loop(N) ->
 
 shutdown_no_blocking_test() ->
     {ok, C} = erlzmq:context(),
-    {ok, S} = erlzmq:socket(C, [pub, {active, false}]),
+    {ok, S} = erlzmq:socket(C, pub),
     erlzmq:close(S),
     ?assertEqual(ok, erlzmq:term(C, 500)).
 
 shutdown_blocking_test() ->
     {ok, C} = erlzmq:context(),
-    {ok, _S} = erlzmq:socket(C, [pub, {active, false}]),
+    {ok, _S} = erlzmq:socket(C, pub),
     ?assertMatch({error, {timeout, _}}, erlzmq:term(C, 0)).
 
 shutdown_blocking_unblocking_test() ->
     {ok, C} = erlzmq:context(),
-    {ok, S} = erlzmq:socket(C, [pub, {active, false}]),
+    {ok, S} = erlzmq:socket(C, pub),
     V = erlzmq:term(C, 500),
     ?assertMatch({error, {timeout, _}}, V),
     {error, {timeout, Ref}} = V,
@@ -331,7 +557,7 @@ join_procs(N) ->
 shutdown_stress_worker_loop(0, _) ->
     ok;
 shutdown_stress_worker_loop(N, C) ->
-    {ok, S2} = erlzmq:socket(C, [sub, {active, false}]),
+    {ok, S2} = erlzmq:socket(C, sub),
     spawn(?MODULE, worker, [self(), S2]),
     shutdown_stress_worker_loop(N-1, C).
 
