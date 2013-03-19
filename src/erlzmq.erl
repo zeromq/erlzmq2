@@ -468,4 +468,6 @@ option_name(rcvtimeo) ->
 option_name(sndtimeo) ->
     ?'ZMQ_SNDTIMEO';
 option_name(ipv4only) ->
-    ?'ZMQ_IPV4ONLY'.
+    ?'ZMQ_IPV4ONLY';
+option_name(delay_attach_on_connect) ->
+    ?'ZMQ_DELAY_ATTACH_ON_CONNECT'.

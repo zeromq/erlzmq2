@@ -38,6 +38,13 @@
 -define('ZMQ_SNDTIMEO',          28).
 -define('ZMQ_IPV4ONLY',          31).
 -define('ZMQ_LAST_ENDPOINT',     32).
+-define('ZMQ_FAIL_UNROUTABLE',   33).
+-define('ZMQ_TCP_KEEPALIVE',           34).
+-define('ZMQ_TCP_KEEPALIVE_CNT',       35).
+-define('ZMQ_TCP_KEEPALIVE_IDLE',      36).
+-define('ZMQ_TCP_KEEPALIVE_INTVL',     37).
+-define('ZMQ_TCP_ACCEPT_FILTER',       38).
+-define('ZMQ_DELAY_ATTACH_ON_CONNECT', 39).
 
 %  Message options
 -define('ZMQ_MORE',  1).
@@ -119,9 +126,8 @@
                           reconnect_ivl | backlog |reconnect_ivl_max
                           | maxmsgsize | sndhwm | rcvhwm |
                           multicast_hops | rcvtimeo | sndtimeo |
-                          ipv4only.
+                          ipv4only | delay_attach_on_connect.
 
 
 %% Possible option values for {@link erlzmq:setsockopt/3. setsockopt/3}.
 -type erlzmq_sockopt_value() :: integer() | iolist().
-
