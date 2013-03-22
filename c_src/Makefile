@@ -8,7 +8,7 @@ ZMQ_FLAGS=
 endif
 
 ifndef ZEROMQ_VERSION
-ZEROMQ_VERSION=v3.1.0
+ZEROMQ_VERSION=3.2.2
 endif
 
 all: $(DEPS)/zeromq3/src/.libs/libzmq.a
@@ -26,10 +26,11 @@ distclean:
 $(DEPS):
 	@mkdir -p $(DEPS)
 
-$(DEPS)/zeromq3: $(DEPS)
-	@git clone https://github.com/zeromq/libzmq.git $(DEPS)/zeromq3
-	@echo $(ZEROMQ_VERSION)
-	@cd $(DEPS)/zeromq3 && git checkout $(ZEROMQ_VERSION)
+$(DEPS)/zeromq-$(ZEROMQ_VERSION).tar.gz: $(DEPS)
+	@curl http://download.zeromq.org/zeromq-$(ZEROMQ_VERSION).tar.gz -o $(DEPS)/zeromq-$(ZEROMQ_VERSION).tar.gz
+
+$(DEPS)/zeromq3: $(DEPS)/zeromq-$(ZEROMQ_VERSION).tar.gz
+	@cd $(DEPS) && tar xzvfp zeromq-$(ZEROMQ_VERSION).tar.gz && mv zeromq-$(ZEROMQ_VERSION) zeromq3
 
 $(DEPS)/zeromq3/src/.libs/libzmq.a: $(DEPS)/zeromq3
-	@cd $(DEPS)/zeromq3 && ./autogen.sh && ./configure $(ZMQ_FLAGS) && make
+	@cd $(DEPS)/zeromq3 && ./configure $(ZMQ_FLAGS) && make
