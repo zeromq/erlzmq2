@@ -62,7 +62,7 @@
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_bind">zmq_bind</a> or
 %% <a href="http://api.zeromq.org/master:zmq_connect">zmq_connect</a></i>
--type erlzmq_endpoint() :: string().
+-type erlzmq_endpoint() :: string() | binary().
 
 %% Standard error atoms.
 -type errno() :: eperm | enoent | srch | eintr | eio | enxio | ebad |

@@ -138,7 +138,10 @@ socket(Context, Type, {active, false}) ->
     erlzmq_error().
 bind({I, Socket}, Endpoint)
     when is_integer(I), is_list(Endpoint) ->
-    erlzmq_nif:bind(Socket, Endpoint).
+    erlzmq_nif:bind(Socket, Endpoint);
+bind({I, Socket}, Endpoint)
+    when is_integer(I), is_binary(Endpoint) ->
+    bind({I, Socket}, binary_to_list(Endpoint)).
 
 %% @doc Connect a socket.
 %% <br />
@@ -151,7 +154,10 @@ bind({I, Socket}, Endpoint)
     erlzmq_error().
 connect({I, Socket}, Endpoint)
     when is_integer(I), is_list(Endpoint) ->
-    erlzmq_nif:connect(Socket, Endpoint).
+    erlzmq_nif:connect(Socket, Endpoint);
+connect({I, Socket}, Endpoint)
+    when is_integer(I), is_binary(Endpoint) ->
+    connect({I, Socket}, binary_to_list(Endpoint)).
 
 %% @equiv send(Socket, Msg, [])
 -spec send(erlzmq_socket(),
