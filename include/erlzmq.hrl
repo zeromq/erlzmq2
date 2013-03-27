@@ -38,7 +38,16 @@
 -define('ZMQ_SNDTIMEO',          28).
 -define('ZMQ_IPV4ONLY',          31).
 -define('ZMQ_LAST_ENDPOINT',     32).
-
+-define('ZMQ_ROUTER_MANDATORY',  33).
+-define('ZMQ_TCP_KEEPALIVE',     34).
+-define('ZMQ_TCP_KEEPALIVE_CNT', 35).
+-define('ZMQ_TCP_KEEPALIVE_IDLE', 36).
+-define('ZMQ_TCP_KEEPALIVE_INTVL', 37).
+-define('ZMQ_TCP_ACCEPT_FILTER', 38).
+-define('ZMQ_DELAY_ATTACH_ON_CONNECT', 39).
+-define('ZMQ_XPUB_VERBOSE',      40).
+-define('ZMQ_ROUTER_RAW',        41).
+-define('ZMQ_IPV6',              42).
 %  Message options
 -define('ZMQ_MORE',  1).
 
@@ -113,15 +122,18 @@
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq_setsockopt">zmq_setsockopt</a>
 %% and <a href="http://api.zeromq.org/master:zmq_getsockopt">zmq_getsockopt</a></i>
--type erlzmq_sockopt() :: affinity | identity | subscribe |
-                          unsubscribe | rate | recovery_ivl | sndbuf |
-                          rcvbuf | rcvmore | fd | events | linger |
-                          reconnect_ivl | backlog |reconnect_ivl_max
-                          | maxmsgsize | sndhwm | rcvhwm |
-                          multicast_hops | rcvtimeo | sndtimeo |
-                          ipv4only.
-
-
+-type erlzmq_sockopt() :: affinity | identity | subscribe | unsubscribe 
+                        | rate | recovery_ivl | sndbuf | rcvbuf | rcvmore 
+                        | fd | events | type | linger | reconnect_ivl 
+                        | backlog | reconnect_ivl_max | maxmsgsize 
+                        | sndhwm | rcvhwm | multicast_hops | rcvtimeo
+                        | sndtimeo | ipv4only | last_endpoint 
+                        | router_mandatory | tcp_keepalive  
+                        | tcp_keepalive_cnt | tcp_keepalive_idle 
+                        | tcp_keepalive_intvl | tcp_accept_filter
+                        | delay_attach_on_connect | xpub_verbose
+                        | router_raw | ipv6.
+                        
 %% Possible option values for {@link erlzmq:setsockopt/3. setsockopt/3}.
 -type erlzmq_sockopt_value() :: integer() | iolist().
 
