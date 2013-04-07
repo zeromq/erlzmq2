@@ -453,12 +453,16 @@ option_name(fd) ->
     ?'ZMQ_FD';
 option_name(events) ->
     ?'ZMQ_EVENTS';
+option_name(type) ->
+    ?'ZMQ_TYPE';
 option_name(linger) ->
     ?'ZMQ_LINGER';
 option_name(reconnect_ivl) ->
     ?'ZMQ_RECONNECT_IVL';
 option_name(backlog) ->
     ?'ZMQ_BACKLOG';
+option_name(recovery_ivl_msec) ->
+    ?'ZMQ_RECOVERY_IVL_MSEC';
 option_name(reconnect_ivl_max) ->
     ?'ZMQ_RECONNECT_IVL_MAX';
 option_name(maxmsgsize) ->
@@ -474,4 +478,26 @@ option_name(rcvtimeo) ->
 option_name(sndtimeo) ->
     ?'ZMQ_SNDTIMEO';
 option_name(ipv4only) ->
-    ?'ZMQ_IPV4ONLY'.
+    ?'ZMQ_IPV4ONLY';
+option_name(last_endpoint) ->
+    ?'ZMQ_LAST_ENDPOINT';
+option_name(router_mandatory) ->
+    ?'ZMQ_ROUTER_MANDATORY';
+option_name(tcp_keepalive) ->
+    ?'ZMQ_TCP_KEEPALIVE';
+option_name(tcp_keepalive_cnt) ->
+    ?'ZMQ_TCP_KEEPALIVE_CNT';
+option_name(tcp_keepalive_idle) ->
+    ?'ZMQ_TCP_KEEPALIVE_IDLE';
+option_name(tcp_keepalive_intvl) ->
+    ?'ZMQ_TCP_KEEPALIVE_INTVL';
+option_name(tcp_accept_filter) ->
+    ?'ZMQ_TCP_ACCEPT_FILTER';
+option_name(delay_attach_on_connect) ->
+    ?'ZMQ_DELAY_ATTACH_ON_CONNECT';
+option_name(xpub_verbose) ->
+    ?'ZMQ_XPUB_VERBOSE';
+option_name(router_raw) ->
+    ?'ZMQ_ROUTER_RAW';
+option_name(ipv6) ->
+    ?'ZMQ_IPV6'.
