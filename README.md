@@ -28,13 +28,13 @@ Build the code
 
     $ make
 
-If you want to build against a specific version of ZeroMQ in the 3.1
-series (not `v3.1.0`), use this:
+If you want to build against a specific version of ZeroMQ in the 3.2
+series (not `v3.2.2`), use this:
 
-    $ ZEROMQ_VERSION=v<VERSION> make
+    $ ZEROMQ_VERSION=<VERSION> make
 
 Be aware that this will almost assuredly not work correctly for any
-versions of zeromq that are not in the 3.1 series.
+versions of zeromq that are not in the 3.2 series.
 
 Build the docs
 
