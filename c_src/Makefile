@@ -8,7 +8,7 @@ ZMQ_FLAGS=
 endif
 
 ifndef ZEROMQ_VERSION
-ZEROMQ_VERSION=4.0.1
+ZEROMQ_VERSION=4.0.3
 endif
 
 all: $(DEPS)/zeromq4/src/.libs/libzmq.a
