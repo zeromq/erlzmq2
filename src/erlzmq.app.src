@@ -1,7 +1,7 @@
 {application, erlzmq,
  [
   {description, "Erlang ZeroMQ Driver"},
-  {vsn, "3.0"},
+  {vsn, "4.0"},
   {modules, [erlzmq, erlzmq_nif]},
   {registered, []},
   {applications, [
