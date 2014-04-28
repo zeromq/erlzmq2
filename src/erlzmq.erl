@@ -43,6 +43,8 @@
          close/2,
          term/1,
          term/2,
+         ctx_get/2,
+         ctx_set/3,
          version/0]).
 -export_type([erlzmq_socket/0, erlzmq_context/0]).
 
@@ -380,6 +382,35 @@ term(Context, Timeout) ->
             Result
     end.
 
+%% @doc Get an {@link erlzmq_context_opt(). option} associated with a context.
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/4-0:zmq_ctx_get">zmq_ctx_get</a>.</i>
+%% @end
+%% (For some reason, the API link to "master:zmq_ctx_get" doesn't work.
+%%  Hardcoding as "4-0".)
+-spec ctx_get(Context :: erlzmq_context(),
+                 Name :: erlzmq_context_opt()) ->
+    {ok, integer()} |
+    erlzmq_error().
+ctx_get(Context, Name) when is_atom(Name) ->
+    erlzmq_nif:ctx_get(Context, c_option_name(Name)).
+
+%% @doc Set an {@link erlzmq_context_opt(). option} associated with an option.
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/4-0:zmq_ctx_set">zmq_ctx_set</a>.</i>
+%% @end
+%% (For some reason, the API link to "master:zmq_ctx_set" doesn't work.
+%%  Hardcoding as "4-0".)
+-spec ctx_set(Context :: erlzmq_context(),
+                 Name :: erlzmq_context_opt(),
+                 integer()) ->
+    ok |
+    erlzmq_error().
+ctx_set(Context, Name, Value) when is_integer(Value), is_atom(Name) ->
+    erlzmq_nif:ctx_set(Context, c_option_name(Name), Value).
+
 %% @doc Returns the 0MQ library version.
 %% @end
 -spec version() -> {integer(), integer(), integer()}.
@@ -475,3 +506,10 @@ option_name(sndtimeo) ->
     ?'ZMQ_SNDTIMEO';
 option_name(ipv4only) ->
     ?'ZMQ_IPV4ONLY'.
+
+c_option_name(io_threads) ->
+    ?'ZMQ_IO_THREADS';
+c_option_name(max_sockets) ->
+    ?'ZMQ_MAX_SOCKETS';
+c_option_name(ipv6) ->
+    ?'ZMQ_IPV6'.

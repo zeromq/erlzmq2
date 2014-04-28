@@ -46,6 +46,11 @@
 -define('ZMQ_DONTWAIT',    1).
 -define('ZMQ_SNDMORE',     2).
 
+% ZMQ Context options
+-define('ZMQ_IO_THREADS',  1).
+-define('ZMQ_MAX_SOCKETS', 2).
+-define('ZMQ_IPV6', 42).
+
 %% Types
 
 %% Possible types for an erlzmq socket.<br />
@@ -125,3 +130,10 @@
 %% Possible option values for {@link erlzmq:setsockopt/3. setsockopt/3}.
 -type erlzmq_sockopt_value() :: integer() | iolist().
 
+%% Available options for {@link erlzmq:ctx_set/3. ctx_set/3}
+%% and {@link erlzmq:ctx_get/2. ctx_get/2}.<br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/master:zmq_ctx_set">zmq_ctx_set</a>
+%% and <a href="http://api.zeromq.org/master:zmq_ctx_get">zmq_ctx_get</a></i>
+
+-type erlzmq_context_opt() :: io_threads | max_sockets | ipv6.

@@ -11,6 +11,8 @@
          getsockopt/2,
          close/1,
          term/1,
+         ctx_get/2,
+         ctx_set/3,
          version/0]).
 
 -on_load(init/0).
@@ -62,6 +64,12 @@ close(_Socket) ->
     erlang:nif_error(not_loaded).
 
 term(_Context) ->
+    erlang:nif_error(not_loaded).
+
+ctx_get(_Context, _OptionName) ->
+    erlang:nif_error(not_loaded).
+
+ctx_set(_Context, _OptionName, _OptionValue) ->
     erlang:nif_error(not_loaded).
 
 version() ->

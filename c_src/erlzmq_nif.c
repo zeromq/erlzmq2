@@ -107,6 +107,8 @@ NIF(erlzmq_nif_send);
 NIF(erlzmq_nif_recv);
 NIF(erlzmq_nif_close);
 NIF(erlzmq_nif_term);
+NIF(erlzmq_nif_ctx_get);
+NIF(erlzmq_nif_ctx_set);
 NIF(erlzmq_nif_version);
 
 static void * polling_thread(void * handle);
@@ -125,6 +127,8 @@ static ErlNifFunc nif_funcs[] =
   {"recv", 2, erlzmq_nif_recv},
   {"close", 1, erlzmq_nif_close},
   {"term", 1, erlzmq_nif_term},
+  {"ctx_get", 2, erlzmq_nif_ctx_get},
+  {"ctx_set", 3, erlzmq_nif_ctx_set},
   {"version", 0, erlzmq_nif_version}
 };
 
@@ -868,6 +872,100 @@ NIF(erlzmq_nif_term)
     // thread has a reference to the context, decrement here
     enif_release_resource(context);
     return enif_make_copy(env, req.data.term.ref);
+  }
+}
+
+NIF(erlzmq_nif_ctx_set)
+{
+  erlzmq_context_t * context;
+
+  if (! enif_get_resource(env, argv[0], erlzmq_nif_resource_context,
+                          (void **) &context)) {
+    return enif_make_badarg(env);
+  }
+  int option_name;
+
+  if (! enif_get_int(env, argv[1], &option_name)) {
+    return enif_make_badarg(env);
+  }
+
+  int value_int;
+  switch (option_name) {
+    // int
+    case ZMQ_IO_THREADS:
+    case ZMQ_MAX_SOCKETS:
+    case ZMQ_IPV6:
+      if (! enif_get_int(env, argv[2], &value_int)) {
+        return enif_make_badarg(env);
+      }
+      break;
+    default:
+      return enif_make_badarg(env);
+  }
+
+  if (! context->mutex) {
+    return return_zmq_errno(env, ETERM);
+  }
+  enif_mutex_lock(context->mutex);
+  if (! context->context_zmq) {
+    if (context->mutex) {
+      enif_mutex_unlock(context->mutex);
+    }
+    return return_zmq_errno(env, ETERM);
+  }
+  else if (zmq_ctx_set(context->context_zmq, option_name,
+                          value_int)) {
+    enif_mutex_unlock(context->mutex);
+    return return_zmq_errno(env, zmq_errno());
+  }
+  else {
+    enif_mutex_unlock(context->mutex);
+    return enif_make_atom(env, "ok");
+  }
+}
+
+NIF(erlzmq_nif_ctx_get)
+{
+  erlzmq_context_t * context;
+  int option_name;
+
+  if (! enif_get_resource(env, argv[0], erlzmq_nif_resource_context,
+                          (void **) &context)) {
+    return enif_make_badarg(env);
+  }
+
+  if (! enif_get_int(env, argv[1], &option_name)) {
+    return enif_make_badarg(env);
+  }
+
+  int value_int;
+  switch(option_name) {
+    // int
+    case ZMQ_IO_THREADS:
+    case ZMQ_MAX_SOCKETS:
+    case ZMQ_IPV6:
+      if (! context->mutex) {
+        return return_zmq_errno(env, ETERM);
+      }
+      enif_mutex_lock(context->mutex);
+      if (! context->context_zmq) {
+        if (context->mutex) {
+          enif_mutex_unlock(context->mutex);
+        }
+        return return_zmq_errno(env, ETERM);
+      }
+      else {
+        value_int = zmq_ctx_get(context->context_zmq, option_name);
+        if (value_int == -1) {
+          enif_mutex_unlock(context->mutex);
+          return return_zmq_errno(env, zmq_errno());
+        }
+      }
+      enif_mutex_unlock(context->mutex);
+      return enif_make_tuple2(env, enif_make_atom(env, "ok"),
+                              enif_make_int(env, value_int));
+    default:
+      return enif_make_badarg(env);
   }
 }
 

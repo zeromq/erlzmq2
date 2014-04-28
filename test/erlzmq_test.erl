@@ -1,5 +1,7 @@
 -module(erlzmq_test).
 -include_lib("eunit/include/eunit.hrl").
+-include_lib("erlzmq.hrl").
+-export_type([erlzmq_socket/0, erlzmq_context/0]).                              
 -export([worker/2]).
 
 % provides some context for failures only viewable within the C code
@@ -392,6 +394,29 @@ shutdown_blocking_unblocking_test() ->
         {Ref, ok} ->
             ok
     end,
+    ?PRINT_END.
+
+ctx_opt_test() ->
+    ?PRINT_START,
+    {ok, C} = erlzmq:context(),
+    {ok, OrigMS} = erlzmq:ctx_get(C, max_sockets),
+    ?assertMatch(ok, erlzmq:ctx_set(C, max_sockets, OrigMS * 2)),
+    {ok, NewMS} = erlzmq:ctx_get(C, max_sockets),
+    ?assertMatch(NewMS, OrigMS * 2),
+    ok = erlzmq:ctx_set(C, max_sockets, OrigMS),
+
+    {ok, OrigIT} = erlzmq:ctx_get(C, io_threads),
+    ?assertMatch(ok, erlzmq:ctx_set(C, io_threads, OrigIT * 2)),
+    {ok, NewIT} = erlzmq:ctx_get(C, io_threads),
+    ?assertMatch(NewIT, OrigIT * 2),
+    ok = erlzmq:ctx_set(C, io_threads, OrigIT),
+
+    {ok, 0} = erlzmq:ctx_get(C, ipv6),
+    ?assertMatch(ok, erlzmq:ctx_set(C, ipv6, 1)),
+    {ok, NewV6} = erlzmq:ctx_get(C, ipv6),
+    ?assertMatch(NewV6, 1),
+    ok = erlzmq:ctx_set(C, ipv6, 0),
+
     ?PRINT_END.
 
 join_procs(0) ->
