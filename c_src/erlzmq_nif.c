@@ -117,7 +117,7 @@ static ERL_NIF_TERM return_zmq_errno(ErlNifEnv* env, int const value);
 
 static ErlNifFunc nif_funcs[] =
 {
-  {"context", 1, erlzmq_nif_context},
+  {"context", 2, erlzmq_nif_context},
   {"socket", 4, erlzmq_nif_socket},
   {"bind", 2, erlzmq_nif_bind},
   {"connect", 2, erlzmq_nif_connect},
@@ -135,9 +135,47 @@ static ErlNifFunc nif_funcs[] =
 NIF(erlzmq_nif_context)
 {
   int thread_count;
+  int max_sockets = -1;
 
   if (! enif_get_int(env, argv[0], &thread_count)) {
     return enif_make_badarg(env);
+  }
+
+  /* Parse the options: [{name, val}].  Currently only max_sockets
+   * is supported. */
+  unsigned int opt_length;
+  ERL_NIF_TERM opt_list = argv[1];
+  if (! enif_get_list_length(env, opt_list, &opt_length)) {
+    return enif_make_badarg(env);
+  }
+
+  while (opt_length-- > 0) {
+    ERL_NIF_TERM opt_head;
+    ERL_NIF_TERM opt_tail;
+    if (! enif_get_list_cell(env, opt_list, &opt_head, &opt_tail)) {
+      return enif_make_badarg(env);
+    }
+    int opt_arity;
+    const ERL_NIF_TERM *opt_elems;
+    if (! enif_get_tuple(env, opt_head, &opt_arity, &opt_elems)) {
+      return enif_make_badarg(env);
+    }
+    if (opt_arity != 2) {
+      return enif_make_badarg(env);
+    }
+    char opt_name[64];
+    if (! enif_get_atom(env, opt_elems[0], opt_name, sizeof(opt_name), ERL_NIF_LATIN1)) {
+      return enif_make_badarg(env);
+    }
+
+    if (! strcmp(opt_name, "max_sockets")) {
+      if (! enif_get_int(env, opt_elems[1], &max_sockets)) {
+        return enif_make_badarg(env);
+      }
+    } else {
+      return enif_make_badarg(env);
+    }
+    opt_list = opt_tail;
   }
 
   erlzmq_context_t * context = enif_alloc_resource(erlzmq_nif_resource_context,
@@ -147,6 +185,15 @@ NIF(erlzmq_nif_context)
   if (! context->context_zmq) {
     enif_release_resource(context);
     return return_zmq_errno(env, zmq_errno());
+  }
+
+  /* Have to set max_sockets here, before the first socket is created. */
+  if (max_sockets != -1) {
+    if (zmq_ctx_set(context->context_zmq, ZMQ_MAX_SOCKETS,
+                            max_sockets)) {
+      enif_release_resource(context);
+      return return_zmq_errno(env, zmq_errno());
+    }
   }
 
   char thread_socket_id[64];

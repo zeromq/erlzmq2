@@ -398,9 +398,10 @@ shutdown_blocking_unblocking_test() ->
 
 ctx_opt_test() ->
     ?PRINT_START,
-    {ok, C} = erlzmq:context(),
-    {ok, OrigMS} = erlzmq:ctx_get(C, max_sockets),
-    ?assertMatch(ok, erlzmq:ctx_set(C, max_sockets, OrigMS * 2)),
+    {ok, CDefault} = erlzmq:context(),
+    {ok, OrigMS} = erlzmq:ctx_get(CDefault, max_sockets),
+    ok = erlzmq:term(CDefault),
+    {ok, C} = erlzmq:context([{max_sockets, OrigMS * 2}]),
     {ok, NewMS} = erlzmq:ctx_get(C, max_sockets),
     ?assertMatch(NewMS, OrigMS * 2),
     ok = erlzmq:ctx_set(C, max_sockets, OrigMS),
@@ -416,6 +417,8 @@ ctx_opt_test() ->
     {ok, NewV6} = erlzmq:ctx_get(C, ipv6),
     ?assertMatch(NewV6, 1),
     ok = erlzmq:ctx_set(C, ipv6, 0),
+
+    ok = erlzmq:term(C),
 
     ?PRINT_END.
 

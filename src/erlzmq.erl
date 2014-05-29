@@ -26,6 +26,7 @@
 -include_lib("erlzmq.hrl").
 -export([context/0,
          context/1,
+         context/2,
          socket/2,
          bind/2,
          connect/2,
@@ -48,14 +49,25 @@
          version/0]).
 -export_type([erlzmq_socket/0, erlzmq_context/0]).
 
-%% @equiv context(1)
+%% @equiv context(1, [])
 -spec context() ->
     {ok, erlzmq_context()} |
     erlzmq_error().
 context() ->
-    context(1).
+    context(1, []).
+
+%% @equiv context(Threads, []) or context(1, Opts)
+-spec context(Arg :: pos_integer() | list()) ->
+    {ok, erlzmq_context()} |
+    erlzmq_error().
+context(Threads) when is_integer(Threads) ->
+    context(Threads, []);
+context(Opts) when is_list(Opts) ->
+    context(1, Opts).
 
 %% @doc Create a new erlzmq context with the specified number of io threads.
+%% Optionally, the max_sockets may be specified.  Unlike the zeromq interface,
+%% this must be specified when the context is created.
 %% <br />
 %% If the context can be created an 'ok' tuple containing an
 %% {@type erlzmq_context()} handle to the created context is returned;
@@ -67,11 +79,11 @@ context() ->
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq-init">zmq_init</a></i>
 %% @end
--spec context(Threads :: pos_integer()) ->
+-spec context(Threads :: pos_integer(), [{max_sockets, S :: pos_integer}]) ->
     {ok, erlzmq_context()} |
     erlzmq_error().
-context(Threads) when is_integer(Threads) ->
-    erlzmq_nif:context(Threads).
+context(Threads, Opts) when is_integer(Threads), is_list(Opts) ->
+    erlzmq_nif:context(Threads, Opts).
 
 
 %% @doc Create a socket.
@@ -397,6 +409,9 @@ ctx_get(Context, Name) when is_atom(Name) ->
     erlzmq_nif:ctx_get(Context, c_option_name(Name)).
 
 %% @doc Set an {@link erlzmq_context_opt(). option} associated with an option.
+%% <br />
+%% NOTE: Setting max_sockets will have no effect, due to the implementation
+%% of zeromq.  Instead, set max_sockets when creating the context.
 %% <br />
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/4-0:zmq_ctx_set">zmq_ctx_set</a>.</i>
