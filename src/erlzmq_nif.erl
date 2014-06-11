@@ -13,6 +13,7 @@
          term/1,
          ctx_get/2,
          ctx_set/3,
+         curve_keypair/0,
          version/0]).
 
 -on_load(init/0).
@@ -70,6 +71,9 @@ ctx_get(_Context, _OptionName) ->
     erlang:nif_error(not_loaded).
 
 ctx_set(_Context, _OptionName, _OptionValue) ->
+    erlang:nif_error(not_loaded).
+
+curve_keypair() ->
     erlang:nif_error(not_loaded).
 
 version() ->

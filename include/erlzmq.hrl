@@ -38,6 +38,10 @@
 -define('ZMQ_SNDTIMEO',          28).
 -define('ZMQ_IPV4ONLY',          31).
 -define('ZMQ_LAST_ENDPOINT',     32).
+-define('ZMQ_CURVE_SERVER',      47).
+-define('ZMQ_CURVE_PUBLICKEY',   48).
+-define('ZMQ_CURVE_SECRETKEY',   49).
+-define('ZMQ_CURVE_SERVERKEY',   50).
 
 %  Message options
 -define('ZMQ_MORE',  1).

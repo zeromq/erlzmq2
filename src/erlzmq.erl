@@ -46,6 +46,7 @@
          term/2,
          ctx_get/2,
          ctx_set/3,
+         curve_keypair/0,
          version/0]).
 -export_type([erlzmq_socket/0, erlzmq_context/0]).
 
@@ -426,6 +427,20 @@ ctx_get(Context, Name) when is_atom(Name) ->
 ctx_set(Context, Name, Value) when is_integer(Value), is_atom(Name) ->
     erlzmq_nif:ctx_set(Context, c_option_name(Name), Value).
 
+%% @doc Generate a Curve keypair.
+%% <br />
+%% This will return two 40-character binaries, each a Z85-encoded
+%% version of the 32-byte keys from curve.
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/4-0:zmq_curve_keypair">zmq_curve_keypair</a>.</i>
+%% @end
+-spec curve_keypair() ->
+    {ok, binary(), binary()} |
+    erlzmq_error().
+curve_keypair() ->
+    erlzmq_nif:curve_keypair().
+
 %% @doc Returns the 0MQ library version.
 %% @end
 -spec version() -> {integer(), integer(), integer()}.
@@ -520,7 +535,15 @@ option_name(rcvtimeo) ->
 option_name(sndtimeo) ->
     ?'ZMQ_SNDTIMEO';
 option_name(ipv4only) ->
-    ?'ZMQ_IPV4ONLY'.
+    ?'ZMQ_IPV4ONLY';
+option_name(curve_server) ->
+    ?'ZMQ_CURVE_SERVER';
+option_name(curve_publickey) ->
+    ?'ZMQ_CURVE_PUBLICKEY';
+option_name(curve_secretkey) ->
+    ?'ZMQ_CURVE_SECRETKEY';
+option_name(curve_serverkey) ->
+    ?'ZMQ_CURVE_SERVERKEY'.
 
 c_option_name(io_threads) ->
     ?'ZMQ_IO_THREADS';

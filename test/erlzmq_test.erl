@@ -520,3 +520,101 @@ basic_tests(Transport, Type1, Type2, Mode) ->
     ok = erlzmq:close(S2),
     ok = erlzmq:term(C).
 
+% Modeled on zeromq's test_security_curve.cpp
+% XXX Ugh, there are serious timing issues here for some reason.
+% The tests fail often.  This needs to be addressed, since the
+% same problems might creep up in real code.
+curve_test() ->
+    {ok, CliPub, CliSec} = erlzmq:curve_keypair(),
+    ?assert(is_binary(CliPub)),
+    ?assert(is_binary(CliSec)),
+    {ok, SerPub, SerSec} = erlzmq:curve_keypair(),
+
+    % Set up server
+    {ok, C} = erlzmq:context(),
+    {ok, Server} = erlzmq:socket(C, [dealer, {active, false}]),
+    ok = erlzmq:setsockopt(Server, curve_server, 1),
+    ok = erlzmq:setsockopt(Server, curve_secretkey, SerSec),
+    ok = erlzmq:setsockopt(Server, identity, "IDENT"),
+    ok = erlzmq:bind(Server, "tcp://127.0.0.1:9998"),
+
+    % Client can talk
+    {ok, Client1} = erlzmq:socket(C, [dealer, {active, false}]),
+    ok = erlzmq:setsockopt(Client1, curve_serverkey, SerPub),
+    ok = erlzmq:setsockopt(Client1, curve_publickey, CliPub),
+    ok = erlzmq:setsockopt(Client1, curve_secretkey, CliSec),
+    ok = erlzmq:connect(Client1, "tcp://localhost:9998"),
+    bounce(Server, Client1),
+    ok = erlzmq:close(Client1),
+
+    % Client with bad server key can't talk
+    BadSerKey = <<"1234567890123456789012345678901234567890">>,
+    {ok, Client2} = erlzmq:socket(C, [dealer, {active, false}]),
+    ok = erlzmq:setsockopt(Client2, curve_serverkey, BadSerKey),
+    ok = erlzmq:setsockopt(Client2, curve_publickey, CliPub),
+    ok = erlzmq:setsockopt(Client2, curve_secretkey, CliSec),
+    ok = erlzmq:connect(Client2, "tcp://localhost:9998"),
+    bounce_fail(Server, Client2),
+    close_zero_linger(Client2),
+
+    % Client with bad client secret key can't talk
+    BadCliSecKey = <<"1234567890123456789012345678901234567890">>,
+    {ok, Client3} = erlzmq:socket(C, [dealer, {active, false}]),
+    ok = erlzmq:setsockopt(Client3, curve_serverkey, SerPub),
+    ok = erlzmq:setsockopt(Client3, curve_publickey, CliPub),
+    ok = erlzmq:setsockopt(Client3, curve_secretkey, BadCliSecKey),
+    ok = erlzmq:connect(Client3, "tcp://localhost:9998"),
+    bounce_fail(Server, Client3),
+    close_zero_linger(Client3),
+
+    % XXX For now, ignore client authentication via ZAP
+
+    % Additional tests, not from test_security_curve.cpp
+
+    % Non-curve client can't talk
+    {ok, Client4} = erlzmq:socket(C, [dealer, {active, false}]),
+    ok = erlzmq:connect(Client4, "tcp://localhost:9998"),
+    bounce_fail(Server, Client4),
+    close_zero_linger(Client4),
+
+    ok = erlzmq:close(Server),
+    ok = erlzmq:term(C).
+
+bounce(S, C) ->
+    timer:sleep(100), % apparently we need to wait a bit
+
+    Content = <<"12345678ABCDEFGH12345678abcdefgh">>,
+    ?assertEqual(ok, erlzmq:send(C, Content, [sndmore])),
+    ?assertEqual(ok, erlzmq:send(C, Content)),
+
+    ?assertMatch({ok, Content}, erlzmq:recv(S)),
+    ?assertMatch({ok, 1}, erlzmq:getsockopt(S, rcvmore)),
+    ?assertMatch({ok, Content}, erlzmq:recv(S)),
+    ?assertMatch({ok, 0}, erlzmq:getsockopt(S, rcvmore)),
+
+    ?assertEqual(ok, erlzmq:send(S, Content, [sndmore])),
+    ?assertEqual(ok, erlzmq:send(S, Content)),
+
+    ?assertMatch({ok, Content}, erlzmq:recv(C)),
+    ?assertMatch({ok, 1}, erlzmq:getsockopt(C, rcvmore)),
+    ?assertMatch({ok, Content}, erlzmq:recv(C)),
+    ?assertMatch({ok, 0}, erlzmq:getsockopt(C, rcvmore)).
+
+bounce_fail(S, C) ->
+    timer:sleep(100), % apparently we need to wait a bit
+    Content = <<"12345678ABCDEFGH12345678abcdefgh">>,
+    ?assertEqual(ok, erlzmq:send(C, Content, [sndmore])),
+    ?assertEqual(ok, erlzmq:send(C, Content)),
+
+    ok = erlzmq:setsockopt(S, rcvtimeo, 150),
+    ?assertMatch({error, eagain}, erlzmq:recv(S)),
+
+    ?assertEqual(ok, erlzmq:send(S, Content, [sndmore])),
+    ?assertEqual(ok, erlzmq:send(S, Content)),
+
+    ok = erlzmq:setsockopt(C, rcvtimeo, 150),
+    ?assertMatch({error, eagain}, erlzmq:recv(C)).
+
+close_zero_linger(Sock) ->
+    ok = erlzmq:setsockopt(Sock, linger, 0),
+    erlzmq:close(Sock).

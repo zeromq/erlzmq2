@@ -22,6 +22,7 @@
 // THE SOFTWARE.
 
 #include "zmq.h"
+#include "zmq_utils.h"
 #include "erl_nif.h"
 #include "vector.h"
 #include <string.h>
@@ -109,6 +110,7 @@ NIF(erlzmq_nif_close);
 NIF(erlzmq_nif_term);
 NIF(erlzmq_nif_ctx_get);
 NIF(erlzmq_nif_ctx_set);
+NIF(erlzmq_nif_curve_keypair);
 NIF(erlzmq_nif_version);
 
 static void * polling_thread(void * handle);
@@ -129,6 +131,7 @@ static ErlNifFunc nif_funcs[] =
   {"term", 1, erlzmq_nif_term},
   {"ctx_get", 2, erlzmq_nif_ctx_get},
   {"ctx_set", 3, erlzmq_nif_ctx_set},
+  {"curve_keypair", 0, erlzmq_nif_curve_keypair},
   {"version", 0, erlzmq_nif_version}
 };
 
@@ -389,6 +392,7 @@ NIF(erlzmq_nif_setsockopt)
   ErlNifUInt64 value_uint64;
   ErlNifSInt64 value_int64;
   ErlNifBinary value_binary;
+  uint8_t z85_str[41];
   int value_int;
   void *option_value;
   size_t option_len;
@@ -435,17 +439,42 @@ NIF(erlzmq_nif_setsockopt)
     case ZMQ_RCVTIMEO:
     case ZMQ_SNDTIMEO:
     case ZMQ_IPV4ONLY:
+    case ZMQ_CURVE_SERVER:
       if (! enif_get_int(env, argv[2], &value_int)) {
         return enif_make_badarg(env);
       }
       option_value = &value_int;
       option_len = sizeof(int);
       break;
+    // curve key
+    case ZMQ_CURVE_PUBLICKEY:
+    case ZMQ_CURVE_SECRETKEY:
+    case ZMQ_CURVE_SERVERKEY:
+      if (! enif_inspect_iolist_as_binary(env, argv[2], &value_binary)) {
+        return enif_make_badarg(env);
+      }
+      if (value_binary.size == 32) {
+        // binary
+        option_value = value_binary.data;
+        option_len = value_binary.size;
+      } else if (value_binary.size == 40) {
+        // z85-encoded
+        memcpy(z85_str, value_binary.data, 40);
+        z85_str[40] = 0;
+        option_value = z85_str;
+        option_len = 40;
+      } else {
+        // XXX Perhaps should give reason for failure
+        return enif_make_badarg(env);
+      }
+
+      break;
     default:
       return enif_make_badarg(env);
   }
 
   if (! socket->mutex) {
+    fprintf(stderr, "setsockopt: no mutex\n");
     return return_zmq_errno(env, ETERM);
   }
   enif_mutex_lock(socket->mutex);
@@ -453,6 +482,7 @@ NIF(erlzmq_nif_setsockopt)
     if (socket->mutex) {
       enif_mutex_unlock(socket->mutex);
     }
+    fprintf(stderr, "setsockopt: no socket\n");
     return return_zmq_errno(env, ETERM);
   }
   else if (zmq_setsockopt(socket->socket_zmq, option_name,
@@ -969,6 +999,25 @@ NIF(erlzmq_nif_ctx_set)
     enif_mutex_unlock(context->mutex);
     return enif_make_atom(env, "ok");
   }
+}
+
+NIF(erlzmq_nif_curve_keypair)
+{
+  char public[41];
+  char secret[41];
+  ErlNifBinary pub_bin;
+  ErlNifBinary sec_bin;
+  if (zmq_curve_keypair(public, secret)) {
+    return return_zmq_errno(env, zmq_errno());
+  }
+  enif_alloc_binary(40, &pub_bin);
+  enif_alloc_binary(40, &sec_bin);
+  memcpy(pub_bin.data, public, 40);
+  memcpy(sec_bin.data, secret, 40);
+  return enif_make_tuple3(env, enif_make_atom(env, "ok"),
+                          enif_make_binary(env, &pub_bin),
+                          enif_make_binary(env, &sec_bin));
+
 }
 
 NIF(erlzmq_nif_ctx_get)
