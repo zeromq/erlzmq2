@@ -535,7 +535,6 @@ curve_test() ->
     {ok, Server} = erlzmq:socket(C, [dealer, {active, false}]),
     ok = erlzmq:setsockopt(Server, curve_server, 1),
     ok = erlzmq:setsockopt(Server, curve_secretkey, SerSec),
-    ok = erlzmq:setsockopt(Server, identity, "IDENT"),
     ok = erlzmq:bind(Server, "tcp://127.0.0.1:9998"),
 
     % Client can talk
@@ -618,3 +617,52 @@ bounce_fail(S, C) ->
 close_zero_linger(Sock) ->
     ok = erlzmq:setsockopt(Sock, linger, 0),
     erlzmq:close(Sock).
+
+curve_active_test() ->
+    {ok, CliPub, CliSec} = erlzmq:curve_keypair(),
+    ?assert(is_binary(CliPub)),
+    ?assert(is_binary(CliSec)),
+    {ok, SerPub, SerSec} = erlzmq:curve_keypair(),
+
+    % Set up server
+    {ok, C} = erlzmq:context(),
+    {ok, Server} = erlzmq:socket(C, [dealer, {active, true}]),
+    ok = erlzmq:setsockopt(Server, curve_server, 1),
+    ok = erlzmq:setsockopt(Server, curve_secretkey, SerSec),
+    ok = erlzmq:bind(Server, "tcp://127.0.0.1:9998"),
+
+    % Client can talk
+    {ok, Client1} = erlzmq:socket(C, [dealer, {active, true}]),
+    ok = erlzmq:setsockopt(Client1, curve_serverkey, SerPub),
+    ok = erlzmq:setsockopt(Client1, curve_publickey, CliPub),
+    ok = erlzmq:setsockopt(Client1, curve_secretkey, CliSec),
+    ok = erlzmq:connect(Client1, "tcp://localhost:9998"),
+    timer:sleep(100), % apparently we need to wait a bit
+
+    bounce_active(Server, Client1),
+    ok = erlzmq:close(Client1),
+
+    ok = erlzmq:close(Server),
+    ok = erlzmq:term(C).
+
+expect_content(Sock, Content, Flags) ->
+    receive
+        {zmq, Sock, Content, Flags} -> ok
+    after 100 ->
+        ?assert(false)
+    end.
+
+bounce_active(S, C) ->
+    Content = <<"12345678ABCDEFGH12345678abcdefgh">>,
+    ?assertEqual(ok, erlzmq:send(C, Content, [sndmore])),
+    ?assertEqual(ok, erlzmq:send(C, Content)),
+
+    expect_content(S, Content, [rcvmore]),
+    expect_content(S, Content, []),
+
+    ?assertEqual(ok, erlzmq:send(S, Content, [sndmore])),
+    ?assertEqual(ok, erlzmq:send(S, Content)),
+
+    expect_content(C, Content, [rcvmore]),
+    expect_content(C, Content, []).
+
