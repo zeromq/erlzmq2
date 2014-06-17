@@ -14,6 +14,7 @@
          ctx_get/2,
          ctx_set/3,
          curve_keypair/0,
+         z85_decode/1,
          version/0]).
 
 -on_load(init/0).
@@ -74,6 +75,9 @@ ctx_set(_Context, _OptionName, _OptionValue) ->
     erlang:nif_error(not_loaded).
 
 curve_keypair() ->
+    erlang:nif_error(not_loaded).
+
+z85_decode(_Z85) ->
     erlang:nif_error(not_loaded).
 
 version() ->

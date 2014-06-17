@@ -666,3 +666,11 @@ bounce_active(S, C) ->
     expect_content(C, Content, [rcvmore]),
     expect_content(C, Content, []).
 
+z85_decode_test() ->
+    % Sadly, there's no implementation of z85_encode/1, so we
+    % can't do a simple encode/decode = id test.
+    % Amusing test-case from http://rfc.zeromq.org/spec:32
+    ?assertEqual({ok, <<16#86, 16#4F, 16#D2, 16#6F, 16#B5, 16#59, 16#F7, 16#5B>>},
+                 erlzmq:z85_decode(<<"HelloWorld">>)),
+    ?assertEqual(badarg, try erlzmq:z85_decode(atom) catch error:X -> X end),
+    ?assertEqual(badarg, try erlzmq:z85_decode(<<1>>) catch error:X -> X end).

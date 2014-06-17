@@ -111,6 +111,7 @@ NIF(erlzmq_nif_term);
 NIF(erlzmq_nif_ctx_get);
 NIF(erlzmq_nif_ctx_set);
 NIF(erlzmq_nif_curve_keypair);
+NIF(erlzmq_nif_z85_decode);
 NIF(erlzmq_nif_version);
 
 static void * polling_thread(void * handle);
@@ -132,6 +133,7 @@ static ErlNifFunc nif_funcs[] =
   {"ctx_get", 2, erlzmq_nif_ctx_get},
   {"ctx_set", 3, erlzmq_nif_ctx_set},
   {"curve_keypair", 0, erlzmq_nif_curve_keypair},
+  {"z85_decode", 1, erlzmq_nif_z85_decode},
   {"version", 0, erlzmq_nif_version}
 };
 
@@ -1018,6 +1020,35 @@ NIF(erlzmq_nif_curve_keypair)
                           enif_make_binary(env, &pub_bin),
                           enif_make_binary(env, &sec_bin));
 
+}
+
+NIF(erlzmq_nif_z85_decode)
+{
+  ErlNifBinary value_binary;
+  if (! enif_inspect_iolist_as_binary(env, argv[0], &value_binary)) {
+    return enif_make_badarg(env);
+  }
+  if (value_binary.size % 5 != 0) { 
+    return enif_make_badarg(env);
+  }
+  // 0-terminate the string
+  int z85_size = value_binary.size;
+  int dec_size = z85_size / 5 * 4;
+  char *z85buf = (char*) malloc(z85_size+1);
+  memcpy(z85buf, value_binary.data, value_binary.size);
+  z85buf[value_binary.size] = 0;
+
+  ErlNifBinary dec_bin;
+  ERL_NIF_TERM ret;
+  enif_alloc_binary(dec_size, &dec_bin);
+  if (zmq_z85_decode (dec_bin.data, z85buf) == NULL) {
+    ret = return_zmq_errno(env, zmq_errno());
+  } else {
+    ret = enif_make_tuple2(env, enif_make_atom(env, "ok"),
+                                enif_make_binary(env, &dec_bin));
+  }
+  free(z85buf);
+  return ret;
 }
 
 NIF(erlzmq_nif_ctx_get)

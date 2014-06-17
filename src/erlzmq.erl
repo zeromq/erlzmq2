@@ -47,6 +47,7 @@
          ctx_get/2,
          ctx_set/3,
          curve_keypair/0,
+         z85_decode/1,
          version/0]).
 -export_type([erlzmq_socket/0, erlzmq_context/0]).
 
@@ -440,6 +441,19 @@ ctx_set(Context, Name, Value) when is_integer(Value), is_atom(Name) ->
     erlzmq_error().
 curve_keypair() ->
     erlzmq_nif:curve_keypair().
+
+%% @doc Decode a Z85-encode binary
+%% <br />
+%% This will take a binary of size 5*n, and return a binary of size 4*n.
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/4-1:zmq-z85-decode">zmq_z85_decode</a>.</i>
+%% @end
+-spec z85_decode(binary()) ->
+    {ok, binary(), binary()} |
+    erlzmq_error().
+z85_decode(Z85) ->
+    erlzmq_nif:z85_decode(Z85).
 
 %% @doc Returns the 0MQ library version.
 %% @end
