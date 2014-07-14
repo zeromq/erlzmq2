@@ -4,7 +4,7 @@ DEPS=../deps
 ifeq ($(LINUX),1)
 ZMQ_FLAGS=--with-pic --with-pgm
 else
-ZMQ_FLAGS=
+ZMQ_FLAGS=--with-libsodium=/opt/local
 endif
 
 ifndef ZEROMQ_VERSION
