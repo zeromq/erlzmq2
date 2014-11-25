@@ -1136,7 +1136,13 @@ static void * polling_thread(void * handle)
   for (;;) {
     int count = zmq_poll(vector_p(zmq_pollitem_t, &items_zmq),
                          vector_count(&items_zmq), -1);
-    assert(count != -1);
+    if (count == -1) {
+      if (zmq_errno() == EINTR) { continue; }
+
+      fprintf(stderr, "zmq_poll error: %s\n",
+                  strerror(zmq_errno()));
+      assert(0);
+    }
     if (vector_get(zmq_pollitem_t, &items_zmq, 0)->revents & ZMQ_POLLIN) {
       --count;
     }
