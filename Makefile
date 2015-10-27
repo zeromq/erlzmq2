@@ -1,22 +1,24 @@
+REBAR=rebar
+
 all: compile
 
 compile:
-	@./rebar compile
+	@$(REBAR) compile
 
 perftest: compile
 	@cd perf && erlc erlzmq_perf.erl
 
 clean:
-	@./rebar clean
+	@$(REBAR) clean
 
 distclean: clean
 	@cd c_src;make distclean
 
 test: compile
-	@./rebar eunit
+	@$(REBAR) eunit
 
 docs:
-	@./rebar doc
+	@$(REBAR) doc
 
 bench: perftest
 	@echo 'Running benchmarks, this could take some time...'
