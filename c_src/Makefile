@@ -2,20 +2,20 @@ LINUX=$(shell uname | grep Linux | wc -l | xargs echo)
 DEPS=../deps
 
 ifeq ($(LINUX),1)
-ZMQ_FLAGS=--with-pic
+ZMQ_FLAGS=--with-pic --with-pgm
 else
-ZMQ_FLAGS=
+ZMQ_FLAGS=--with-libsodium=/opt/local
 endif
 
 ifndef ZEROMQ_VERSION
-ZEROMQ_VERSION=3.2.2
+ZEROMQ_VERSION=4.0.4
 endif
 
-all: $(DEPS)/zeromq3/src/.libs/libzmq.a
+all: $(DEPS)/zeromq4/src/.libs/libzmq.a
 
 clean:
-	if test -e $(DEPS)/zeromq3/Makefile; then \
-		cd $(DEPS)/zeromq3; make clean; \
+	if test -e $(DEPS)/zeromq4/Makefile; then \
+		cd $(DEPS)/zeromq4; make clean; \
 	else \
 		true; \
 	fi
@@ -23,10 +23,10 @@ clean:
 distclean:
 	@rm -rf $(DEPS)
 
-$(DEPS)/zeromq3:
+$(DEPS)/zeromq4:
 	@mkdir -p $(DEPS)
 	@curl http://download.zeromq.org/zeromq-$(ZEROMQ_VERSION).tar.gz -o $(DEPS)/zeromq-$(ZEROMQ_VERSION).tar.gz
-	@cd $(DEPS) && tar xzvfp zeromq-$(ZEROMQ_VERSION).tar.gz && mv zeromq-$(ZEROMQ_VERSION) zeromq3
+	@cd $(DEPS) && tar xzvfp zeromq-$(ZEROMQ_VERSION).tar.gz && mv zeromq-$(ZEROMQ_VERSION) zeromq4
 
-$(DEPS)/zeromq3/src/.libs/libzmq.a: $(DEPS)/zeromq3
-	@cd $(DEPS)/zeromq3 && ./configure $(ZMQ_FLAGS) && make
+$(DEPS)/zeromq4/src/.libs/libzmq.a: $(DEPS)/zeromq4
+	@cd $(DEPS)/zeromq4 && ./configure $(ZMQ_FLAGS) && make

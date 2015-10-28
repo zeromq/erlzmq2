@@ -1,7 +1,7 @@
 %% @hidden
 -module(erlzmq_nif).
 
--export([context/1,
+-export([context/2,
          socket/4,
          bind/2,
          connect/2,
@@ -11,6 +11,10 @@
          getsockopt/2,
          close/1,
          term/1,
+         ctx_get/2,
+         ctx_set/3,
+         curve_keypair/0,
+         z85_decode/1,
          version/0]).
 
 -on_load(init/0).
@@ -34,7 +38,7 @@ init() ->
             end
     end.
 
-context(_Threads) ->
+context(_Threads, _Opts) ->
     erlang:nif_error(not_loaded).
 
 socket(_Context, _Type, _Active, _ActivePid) ->
@@ -62,6 +66,18 @@ close(_Socket) ->
     erlang:nif_error(not_loaded).
 
 term(_Context) ->
+    erlang:nif_error(not_loaded).
+
+ctx_get(_Context, _OptionName) ->
+    erlang:nif_error(not_loaded).
+
+ctx_set(_Context, _OptionName, _OptionValue) ->
+    erlang:nif_error(not_loaded).
+
+curve_keypair() ->
+    erlang:nif_error(not_loaded).
+
+z85_decode(_Z85) ->
     erlang:nif_error(not_loaded).
 
 version() ->

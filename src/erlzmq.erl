@@ -26,6 +26,7 @@
 -include_lib("erlzmq.hrl").
 -export([context/0,
          context/1,
+         context/2,
          socket/2,
          bind/2,
          connect/2,
@@ -43,17 +44,32 @@
          close/2,
          term/1,
          term/2,
+         ctx_get/2,
+         ctx_set/3,
+         curve_keypair/0,
+         z85_decode/1,
          version/0]).
 -export_type([erlzmq_socket/0, erlzmq_context/0]).
 
-%% @equiv context(1)
+%% @equiv context(1, [])
 -spec context() ->
     {ok, erlzmq_context()} |
     erlzmq_error().
 context() ->
-    context(1).
+    context(1, []).
+
+%% @equiv context(Threads, []) or context(1, Opts)
+-spec context(Arg :: pos_integer() | list()) ->
+    {ok, erlzmq_context()} |
+    erlzmq_error().
+context(Threads) when is_integer(Threads) ->
+    context(Threads, []);
+context(Opts) when is_list(Opts) ->
+    context(1, Opts).
 
 %% @doc Create a new erlzmq context with the specified number of io threads.
+%% Optionally, the max_sockets may be specified.  Unlike the zeromq interface,
+%% this must be specified when the context is created.
 %% <br />
 %% If the context can be created an 'ok' tuple containing an
 %% {@type erlzmq_context()} handle to the created context is returned;
@@ -65,11 +81,11 @@ context() ->
 %% <i>For more information see
 %% <a href="http://api.zeromq.org/master:zmq-init">zmq_init</a></i>
 %% @end
--spec context(Threads :: pos_integer()) ->
+-spec context(Threads :: pos_integer(), [{max_sockets, S :: pos_integer}]) ->
     {ok, erlzmq_context()} |
     erlzmq_error().
-context(Threads) when is_integer(Threads) ->
-    erlzmq_nif:context(Threads).
+context(Threads, Opts) when is_integer(Threads), is_list(Opts) ->
+    erlzmq_nif:context(Threads, Opts).
 
 
 %% @doc Create a socket.
@@ -380,6 +396,65 @@ term(Context, Timeout) ->
             Result
     end.
 
+%% @doc Get an {@link erlzmq_context_opt(). option} associated with a context.
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/4-0:zmq_ctx_get">zmq_ctx_get</a>.</i>
+%% @end
+%% (For some reason, the API link to "master:zmq_ctx_get" doesn't work.
+%%  Hardcoding as "4-0".)
+-spec ctx_get(Context :: erlzmq_context(),
+                 Name :: erlzmq_context_opt()) ->
+    {ok, integer()} |
+    erlzmq_error().
+ctx_get(Context, Name) when is_atom(Name) ->
+    erlzmq_nif:ctx_get(Context, c_option_name(Name)).
+
+%% @doc Set an {@link erlzmq_context_opt(). option} associated with an option.
+%% <br />
+%% NOTE: Setting max_sockets will have no effect, due to the implementation
+%% of zeromq.  Instead, set max_sockets when creating the context.
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/4-0:zmq_ctx_set">zmq_ctx_set</a>.</i>
+%% @end
+%% (For some reason, the API link to "master:zmq_ctx_set" doesn't work.
+%%  Hardcoding as "4-0".)
+-spec ctx_set(Context :: erlzmq_context(),
+                 Name :: erlzmq_context_opt(),
+                 integer()) ->
+    ok |
+    erlzmq_error().
+ctx_set(Context, Name, Value) when is_integer(Value), is_atom(Name) ->
+    erlzmq_nif:ctx_set(Context, c_option_name(Name), Value).
+
+%% @doc Generate a Curve keypair.
+%% <br />
+%% This will return two 40-character binaries, each a Z85-encoded
+%% version of the 32-byte keys from curve.
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/4-0:zmq_curve_keypair">zmq_curve_keypair</a>.</i>
+%% @end
+-spec curve_keypair() ->
+    {ok, binary(), binary()} |
+    erlzmq_error().
+curve_keypair() ->
+    erlzmq_nif:curve_keypair().
+
+%% @doc Decode a Z85-encode binary
+%% <br />
+%% This will take a binary of size 5*n, and return a binary of size 4*n.
+%% <br />
+%% <i>For more information see
+%% <a href="http://api.zeromq.org/4-1:zmq-z85-decode">zmq_z85_decode</a>.</i>
+%% @end
+-spec z85_decode(binary()) ->
+    {ok, binary(), binary()} |
+    erlzmq_error().
+z85_decode(Z85) ->
+    erlzmq_nif:z85_decode(Z85).
+
 %% @doc Returns the 0MQ library version.
 %% @end
 -spec version() -> {integer(), integer(), integer()}.
@@ -474,4 +549,19 @@ option_name(rcvtimeo) ->
 option_name(sndtimeo) ->
     ?'ZMQ_SNDTIMEO';
 option_name(ipv4only) ->
-    ?'ZMQ_IPV4ONLY'.
+    ?'ZMQ_IPV4ONLY';
+option_name(curve_server) ->
+    ?'ZMQ_CURVE_SERVER';
+option_name(curve_publickey) ->
+    ?'ZMQ_CURVE_PUBLICKEY';
+option_name(curve_secretkey) ->
+    ?'ZMQ_CURVE_SECRETKEY';
+option_name(curve_serverkey) ->
+    ?'ZMQ_CURVE_SERVERKEY'.
+
+c_option_name(io_threads) ->
+    ?'ZMQ_IO_THREADS';
+c_option_name(max_sockets) ->
+    ?'ZMQ_MAX_SOCKETS';
+c_option_name(ipv6) ->
+    ?'ZMQ_IPV6'.
