@@ -384,6 +384,14 @@ NIF(erlzmq_nif_setsockopt)
     case ZMQ_RCVTIMEO:
     case ZMQ_SNDTIMEO:
     case ZMQ_IPV4ONLY:
+    case ZMQ_DELAY_ATTACH_ON_CONNECT:
+    case ZMQ_ROUTER_MANDATORY:
+    case ZMQ_XPUB_VERBOSE:
+    case ZMQ_TCP_KEEPALIVE:
+    case ZMQ_TCP_KEEPALIVE_IDLE:
+    case ZMQ_TCP_KEEPALIVE_CNT:
+    case ZMQ_TCP_KEEPALIVE_INTVL:
+    case ZMQ_TCP_ACCEPT_FILTER:
       if (! enif_get_int(env, argv[2], &value_int)) {
         return enif_make_badarg(env);
       }
@@ -480,6 +488,8 @@ NIF(erlzmq_nif_getsockopt)
                               enif_make_uint64(env, value_uint64));
     // binary
     case ZMQ_IDENTITY:
+    case ZMQ_SUBSCRIBE:
+    case ZMQ_UNSUBSCRIBE:
       option_len = sizeof(option_value);
       if (! socket->mutex) {
         return return_zmq_errno(env, ETERM);
@@ -520,6 +530,14 @@ NIF(erlzmq_nif_getsockopt)
     case ZMQ_IPV4ONLY:
     case ZMQ_EVENTS:
     case ZMQ_FD:   // FIXME: ZMQ_FD returns SOCKET on Windows
+    case ZMQ_DELAY_ATTACH_ON_CONNECT:
+    case ZMQ_ROUTER_MANDATORY:
+    case ZMQ_XPUB_VERBOSE:
+    case ZMQ_TCP_KEEPALIVE:
+    case ZMQ_TCP_KEEPALIVE_IDLE:
+    case ZMQ_TCP_KEEPALIVE_CNT:
+    case ZMQ_TCP_KEEPALIVE_INTVL:
+    case ZMQ_TCP_ACCEPT_FILTER:
       option_len = sizeof(value_int);
       if (! socket->mutex) {
         return return_zmq_errno(env, ETERM);
