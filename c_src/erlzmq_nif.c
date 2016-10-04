@@ -1504,13 +1504,13 @@ static ERL_NIF_TERM return_zmq_errno(ErlNifEnv* env, int const value)
 static int on_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
 {
   erlzmq_nif_resource_context =
-    enif_open_resource_type(env, "erlzmq_nif",
+    enif_open_resource_type(env, NULL,
                             "erlzmq_nif_resource_context",
                             NULL,
                             ERL_NIF_RT_CREATE | ERL_NIF_RT_TAKEOVER,
                             0);
   erlzmq_nif_resource_socket =
-    enif_open_resource_type(env, "erlzmq_nif",
+    enif_open_resource_type(env, NULL,
                             "erlzmq_nif_resource_socket",
                             NULL,
                             ERL_NIF_RT_CREATE | ERL_NIF_RT_TAKEOVER,
