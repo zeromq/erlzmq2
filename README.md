@@ -52,6 +52,29 @@ Run the benchmarks (requires [python](http://www.python.org) and
 This will run performance tests and output png graphs in the graphs
 directory.
 
+Install
+-------
+
+zeromq2 can be included into your rebar3 project with the following `rebar.config`:
+
+```
+{deps, [{erlzmq, {git, "https://github.com/zeromq/erlzmq2.git"}}]}.
+
+{plugins, [pc]}.
+
+{overrides, [
+   {override, erlzmq, [
+      {plugins, [pc]},
+      {provider_hooks, [
+         {post, [
+            {compile, {pc, compile}},
+            {clean, {pc, clean}}
+         ]}
+      ]}
+   ]}
+]}.
+```
+
 Architecture
 ------------
 
