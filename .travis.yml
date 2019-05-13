@@ -1,5 +1,7 @@
 language: erlang
 
+dist: xenial
+
 os:
   - linux
   - osx
@@ -11,7 +13,7 @@ compiler:
 addons:
   apt:
     packages:
-      - libczmq-dev
+      - libzmq3-dev
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update          ; fi
