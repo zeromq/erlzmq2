@@ -17,9 +17,9 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update                                                           ; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install zeromq erlang rebar3                                     ; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb  ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dpkg -i erlang-solutions_1.0_all.deb                                     ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then apt-get -y update && apt-get install esl-erlang                          ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then curl -o /usr/local/bin/rebar3 https://s3.amazonaws.com/rebar3/rebar3     ; fi  
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo dpkg -i erlang-solutions_1.0_all.deb                                     ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get -y update && apt-get install esl-erlang                          ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo curl -o /usr/local/bin/rebar3 https://s3.amazonaws.com/rebar3/rebar3     ; fi  
 
 script:
   - rebar3 do compile, eunit
