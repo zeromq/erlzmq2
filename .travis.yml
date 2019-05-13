@@ -1,6 +1,6 @@
 language: erlang
 otp_release:
-  - 20.3.8.9
+  - 21.1
 
 dist: xenial
 
