@@ -30,4 +30,4 @@ before_install:
     ulimit -n 
 
 script:
-  - rebar3 do compile, eunit
+  - sudo rebar3 do compile, eunit
