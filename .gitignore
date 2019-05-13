@@ -14,3 +14,5 @@ doc/overview-summary.html
 doc/packages-frame.html
 doc/stylesheet.css
 doc/modules-frame.html
+_build/
+*.d

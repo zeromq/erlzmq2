@@ -20,19 +20,19 @@
 -endif.
 
 init() ->
-    case code:priv_dir(erlzmq) of
-        Path when is_list(Path) ->
-            erlang:load_nif(filename:join([Path, "erlzmq_drv"]), []);
+    SoName = case code:priv_dir(?MODULE) of
         {error, bad_name} ->
-            case code:which(erlzmq_nif) of
-                Filename when is_list(Filename) ->
-                    erlang:load_nif(filename:join([filename:dirname(Filename),
-                                                   "..","priv",
-                                                   "erlzmq_drv"]), []);
-                Reason when is_atom(Reason) ->
-                    {error, Reason}
-            end
-    end.
+            case filelib:is_dir(filename:join(["..", priv])) of
+                true ->
+                    filename:join(["..", priv, ?MODULE]);
+                _ ->
+                    filename:join([priv, ?MODULE])
+            end;
+        Dir ->
+            filename:join(Dir, ?MODULE)
+    end,
+    erlang:load_nif(SoName, 0).
+
 
 context(_Threads) ->
     erlang:nif_error(not_loaded).
