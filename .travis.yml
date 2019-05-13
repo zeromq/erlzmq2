@@ -1,8 +1,5 @@
 dist: xenial
 
-before:
-  - kerl list installations
-
 os:
   - linux
   - osx
