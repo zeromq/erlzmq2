@@ -1,7 +1,3 @@
-language: erlang
-otp_release:
-  - 21.1
-
 dist: xenial
 
 before:
@@ -21,8 +17,11 @@ addons:
       - libzmq3-dev
 
 before_install:
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update          ; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install zeromq  ; fi
- 
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update                                                           ; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install zeromq erlang rebar3                                     ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb  ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; dpkg -i erlang-solutions_1.0_all.deb                                     ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; curl -o /usr/local/bin/rebar3 https://s3.amazonaws.com/rebar3/rebar3     ; fi  
+
 script:
   - rebar3 do compile, eunit
