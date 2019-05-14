@@ -116,8 +116,8 @@ pair_ipc_test() ->
 
 pair_tcp_test() ->
     ?PRINT_START,
-    basic_tests("tcp://127.0.0.1:5554", pair, pair, active),
-    basic_tests("tcp://127.0.0.1:5555", pair, pair, passive),
+    basic_tests("tcp://127.0.0.1:45554", pair, pair, active),
+    basic_tests("tcp://127.0.0.1:45555", pair, pair, passive),
     ?PRINT_END.
 
 reqrep_device_test() ->
@@ -126,17 +126,17 @@ reqrep_device_test() ->
 
     %%  Create a req/rep device.
     {ok, Xreq} = erlzmq:socket(Ctx, [xreq, {active, false}]),
-    ok = erlzmq:bind(Xreq, "tcp://127.0.0.1:5560"),
+    ok = erlzmq:bind(Xreq, "tcp://127.0.0.1:45560"),
     {ok, Xrep} = erlzmq:socket(Ctx, [xrep, {active, false}]),
-    ok = erlzmq:bind(Xrep, "tcp://127.0.0.1:5561"),
+    ok = erlzmq:bind(Xrep, "tcp://127.0.0.1:45561"),
 
     %%  Create a worker.
     {ok, Rep} = erlzmq:socket(Ctx, [rep, {active, false}]),
-    ok= erlzmq:connect(Rep, "tcp://127.0.0.1:5560"),
+    ok= erlzmq:connect(Rep, "tcp://127.0.0.1:45560"),
 
     %%  Create a client.
     {ok, Req} = erlzmq:socket(Ctx, [req, {active, false}]),
-    ok = erlzmq:connect(Req, "tcp://127.0.0.1:5561"),
+    ok = erlzmq:connect(Req, "tcp://127.0.0.1:45561"),
 
     %%  Send a request.
     ok = erlzmq:send(Req, <<"ABC">>, [sndmore]),
@@ -215,8 +215,8 @@ reqrep_ipc_test() ->
 
 reqrep_tcp_test() ->
     ?PRINT_START,
-    basic_tests("tcp://127.0.0.1:5556", req, rep, active),
-    basic_tests("tcp://127.0.0.1:5557", req, rep, passive),
+    basic_tests("tcp://127.0.0.1:45556", req, rep, active),
+    basic_tests("tcp://127.0.0.1:45557", req, rep, passive),
     ?PRINT_END.
 
 
@@ -227,21 +227,21 @@ sub_forward_test() ->
     %%  First, create an intermediate device.
     {ok, Xpub} = erlzmq:socket(Ctx, [xpub, {active, false}]),
 
-    ok = erlzmq:bind(Xpub, "tcp://127.0.0.1:5560"),
+    ok = erlzmq:bind(Xpub, "tcp://127.0.0.1:45560"),
 
     {ok, Xsub} = erlzmq:socket(Ctx, [xsub, {active, false}]),
 
-    ok = erlzmq:bind(Xsub, "tcp://127.0.0.1:5561"),
+    ok = erlzmq:bind(Xsub, "tcp://127.0.0.1:45561"),
 
     %%  Create a publisher.
     {ok, Pub} = erlzmq:socket(Ctx, [pub, {active, false}]),
 
-    ok = erlzmq:connect(Pub, "tcp://127.0.0.1:5561"),
+    ok = erlzmq:connect(Pub, "tcp://127.0.0.1:45561"),
 
     %%  Create a subscriber.
     {ok, Sub} = erlzmq:socket(Ctx, [sub, {active, false}]),
 
-    ok = erlzmq:connect(Sub, "tcp://127.0.0.1:5560"),
+    ok = erlzmq:connect(Sub, "tcp://127.0.0.1:45560"),
 
     %%  Subscribe for all messages.
     ok = erlzmq:setsockopt(Sub, subscribe, <<"">>),
@@ -413,7 +413,7 @@ shutdown_stress_worker_loop(N, C) ->
     shutdown_stress_worker_loop(N-1, C).
 
 worker(Pid, S) ->
-    ?assertMatch(ok, erlzmq:connect(S, "tcp://127.0.0.1:5558")),
+    ?assertMatch(ok, erlzmq:connect(S, "tcp://127.0.0.1:45558")),
     ?assertMatch(ok, erlzmq:close(S)),
     Pid ! proc_end.
 
