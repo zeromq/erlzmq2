@@ -13,11 +13,11 @@ addons:
 
 before_install:
   - >
-    wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb
-    sudo dpkg -i erlang-solutions_1.0_all.deb                           
-    sudo apt-get -y update && sudo apt-get install esl-erlang          
-    sudo curl -o /usr/local/bin/rebar3 https://s3.amazonaws.com/rebar3/rebar3     
-    sudo chmod 755 /usr/local/bin/rebar3   
+    wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb  ;
+    sudo dpkg -i erlang-solutions_1.0_all.deb                                ;
+    sudo apt-get -y update && sudo apt-get install esl-erlang                ;
+    sudo curl -o /usr/local/bin/rebar3 https://s3.amazonaws.com/rebar3/rebar3;
+    sudo chmod 755 /usr/local/bin/rebar3                                     ;
 
 script:
   - rebar3 do compile, eunit
