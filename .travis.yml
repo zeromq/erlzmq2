@@ -21,8 +21,9 @@ before_install:
     echo "Increase the maximum number of open file descriptors on macOS" ;
     sudo sysctl -w kern.maxfiles=20480                                   ;
     sudo sysctl -w kern.maxfilesperproc=20480                            ;
-    sudo launchctl limit maxfiles 10000 unlimited                        ;
-    sudo ulimit -n 20000                                                 ;
+    ulimit -S -n                                                         ;
+    ulimit -n 20000                                                      ;
+    ulimit -S -n                                                         ;
     fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ] ; then wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb   ; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ] ; then sudo dpkg -i erlang-solutions_1.0_all.deb                                 ; fi
