@@ -1,0 +1,7 @@
+FROM erlang:22
+
+RUN apt-get update && apt-get -y install libczmq-dev libzmq3-dev libzmq5-dev
+
+COPY . .
+
+RUN rebar3 eunit

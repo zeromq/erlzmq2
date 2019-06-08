@@ -1,0 +1,14 @@
+.git
+.gitignore
+.travis.yml
+LICENSE
+README.md
+UPGRADING3.1.md
+_build
+perf
+priv
+*.crashdump
+tags
+verification
+Makefile
+c_src/*.o
