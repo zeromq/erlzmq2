@@ -1,12 +1,15 @@
 {application, erlzmq,
  [
   {description, "Erlang ZeroMQ Driver"},
-  {vsn, "3.0"},
+  {vsn, "3.0.0"},
   {modules, [erlzmq, erlzmq_nif]},
   {registered, []},
   {applications, [
                   kernel,
                   stdlib
                  ]},
-  {env, []}
+  {env, []},
+  {licenses, ["Apache-2.0"]},
+  {links, [{"GitHub", "https://github.com/esl/erlzmq"}]},
+  {exclude_files, ["c_src/*.d"]}
  ]}.
