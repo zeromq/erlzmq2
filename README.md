@@ -4,13 +4,14 @@ NIF based Erlang bindings for the ZeroMQ messaging library.
 
 Forked from the erlzmq2 project.
 
+Copyright (c) 2019 erlang solutions ltd
 
 Copyright (c) 2011 Yurii Rashkovskii, Evax Software and Michael Truog
 
 Overview
 --------
 
-The erlzmq2 application provides high-performance NIF based Erlang
+The erlzmq application provides high-performance NIF based Erlang
 bindings for the ZeroMQ messaging library.
 
 Downloading
