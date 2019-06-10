@@ -1,6 +1,9 @@
-erlzmq2
+erlzmq
 =======
 NIF based Erlang bindings for the ZeroMQ messaging library.
+
+Forked from the erlzmq2 project.
+
 
 Copyright (c) 2011 Yurii Rashkovskii, Evax Software and Michael Truog
 
