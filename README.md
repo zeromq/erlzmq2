@@ -13,10 +13,10 @@ bindings for the ZeroMQ messaging library.
 Downloading
 -----------
 
-The erlzmq2 source code can be found on
-[GitHub](https://github.com/zeromq/erlzmq2)
+The erlzmq source code can be found on
+[GitHub](https://github.com/esl/erlzmq)
 
-    $ git clone http://github.com/zeromq/erlzmq2.git
+    $ git clone http://github.com/esl/erlzmq.git
 
 Building
 --------
@@ -24,30 +24,26 @@ Building
 Please note that to behave properly on your system ZeroMQ might
 require [some tuning](http://www.zeromq.org/docs:tuning-zeromq).
 
+Install zeromq-dev package for your distro.
+
+For examples see `.travis*’ and `verification/Dockerfile*’.
+
 Build the code
 
-    $ make
-
-If you want to build against a specific version of ZeroMQ in the 3.1
-series (not `v3.1.0`), use this:
-
-    $ ZEROMQ_VERSION=v<VERSION> make
-
-Be aware that this will almost assuredly not work correctly for any
-versions of zeromq that are not in the 3.1 series.
+    $ rebar3 compile
 
 Build the docs
 
-    $ make docs
+    $ rebar3 docs
 
 Run the test suite
 
-    $ make test
+    $ rebar3 eunit
 
 Run the benchmarks (requires [python](http://www.python.org) and
 [matplotlib](http://matplotlib.sourceforge.net/))
 
-    $ make bench
+    TODO
 
 This will run performance tests and output png graphs in the graphs
 directory.
